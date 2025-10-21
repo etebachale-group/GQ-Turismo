@@ -190,6 +190,30 @@ if ($conn) {
   </div>
 </div>
 
+<!-- Modal para Enviar Mensaje -->
+<div class="modal fade" id="sendMessageModal" tabindex="-1" aria-labelledby="sendMessageModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="sendMessageModalLabel">Enviar Mensaje a <span id="modalReceiverName"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="sendMessageForm">
+          <input type="hidden" id="messageReceiverId" name="receiver_id">
+          <input type="hidden" id="messageReceiverType" name="receiver_type">
+          <div class="mb-3">
+            <label for="messageContent" class="form-label">Tu Mensaje</label>
+            <textarea class="form-control" id="messageContent" name="message_content" rows="5" required></textarea>
+          </div>
+          <div id="sendMessageResponse" class="mt-3"></div>
+          <button type="submit" class="btn btn-primary w-100">Enviar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const orderServiceModal = document.getElementById('orderServiceModal');
@@ -276,6 +300,63 @@ document.addEventListener('DOMContentLoaded', function() {
             orderServiceMessage.innerHTML = '<div class="alert alert-danger">Hubo un error de conexión. Por favor, inténtalo de nuevo más tarde.</div>';
         });
     });
+
+    // Lógica para el modal de enviar mensaje
+    const sendMessageModal = document.getElementById('sendMessageModal');
+    const modalReceiverName = document.getElementById('modalReceiverName');
+    const messageReceiverId = document.getElementById('messageReceiverId');
+    const messageReceiverType = document.getElementById('messageReceiverType');
+    const messageContent = document.getElementById('messageContent');
+    const sendMessageForm = document.getElementById('sendMessageForm');
+    const sendMessageResponse = document.getElementById('sendMessageResponse');
+
+    if (sendMessageModal) {
+        sendMessageModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            modalReceiverName.textContent = button.dataset.receiverName;
+            messageReceiverId.value = button.dataset.receiverId;
+            messageReceiverType.value = button.dataset.receiverType;
+            messageContent.value = ''; // Clear previous message
+            sendMessageResponse.innerHTML = ''; // Clear previous response
+        });
+
+        sendMessageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            sendMessageResponse.innerHTML = '<div class="alert alert-info">Enviando mensaje...</div>';
+
+            const formData = {
+                receiver_id: messageReceiverId.value,
+                receiver_type: messageReceiverType.value,
+                message: messageContent.value
+            };
+
+            fetch('api/messages.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    sendMessageResponse.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+                    sendMessageForm.reset();
+                    // Optionally close modal after a short delay
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(sendMessageModal);
+                        modal.hide();
+                    }, 2000);
+                } else {
+                    sendMessageResponse.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                sendMessageResponse.innerHTML = '<div class="alert alert-danger">Hubo un error de conexión. Por favor, inténtalo de nuevo más tarde.</div>';
+            });
+        });
+    }
 });
 </script>
 

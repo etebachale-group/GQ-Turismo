@@ -24,6 +24,11 @@ $user_type = $_SESSION['user_type'] ?? '';
                     Reservas
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link" href="messages.php">
+                    Mensajes
+                </a>
+            </li>
             <?php endif; ?>
 
             <?php if ($user_type === 'super_admin'): ?>
