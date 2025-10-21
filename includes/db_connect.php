@@ -1,7 +1,7 @@
 <?php
 $servername = "localhost";
-$username = "root"; // Default XAMPP username
-$password = "";     // Default XAMPP password
+$username = "etebachalegroup"; // Default XAMPP username
+$password = "206849";     // Default XAMPP password
 $dbname = "gq_turismo";
 
 // Crear conexión
