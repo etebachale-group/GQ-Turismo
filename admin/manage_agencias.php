@@ -245,6 +245,43 @@ if ($user_type === 'super_admin') {
             $agency_menus[] = $row;
         }
         $stmt_menus->close();
+
+        // Obtener datos de ingresos y estadísticas para la agencia
+        $total_income_agency = 0;
+        $completed_orders_count = 0;
+        $income_by_service = [];
+        $income_by_menu = [];
+
+        if ($agency_id) {
+            // Total de ingresos y pedidos completados
+            $stmt_income_summary = $conn->prepare("SELECT SUM(precio_total) as total_income, COUNT(*) as completed_count FROM pedidos_servicios WHERE tipo_proveedor = 'agencia' AND id_proveedor = ? AND estado = 'completado'");
+            $stmt_income_summary->bind_param("i", $agency_id);
+            $stmt_income_summary->execute();
+            $result_income_summary = $stmt_income_summary->get_result()->fetch_assoc();
+            $total_income_agency = $result_income_summary['total_income'] ?? 0;
+            $completed_orders_count = $result_income_summary['completed_count'] ?? 0;
+            $stmt_income_summary->close();
+
+            // Ingresos por servicio
+            $stmt_income_service = $conn->prepare("SELECT ps.item_name, SUM(ps.precio_total) as total_item_income FROM pedidos_servicios ps WHERE ps.tipo_proveedor = 'agencia' AND ps.id_proveedor = ? AND ps.tipo_item = 'servicio' AND ps.estado = 'completado' GROUP BY ps.item_name ORDER BY total_item_income DESC");
+            $stmt_income_service->bind_param("i", $agency_id);
+            $stmt_income_service->execute();
+            $result_income_service = $stmt_income_service->get_result();
+            while ($row = $result_income_service->fetch_assoc()) {
+                $income_by_service[] = $row;
+            }
+            $stmt_income_service->close();
+
+            // Ingresos por menú
+            $stmt_income_menu = $conn->prepare("SELECT ps.item_name, SUM(ps.precio_total) as total_item_income FROM pedidos_servicios ps WHERE ps.tipo_proveedor = 'agencia' AND ps.id_proveedor = ? AND ps.tipo_item = 'menu' AND ps.estado = 'completado' GROUP BY ps.item_name ORDER BY total_item_income DESC");
+            $stmt_income_menu->bind_param("i", $agency_id);
+            $stmt_income_menu->execute();
+            $result_income_menu = $stmt_income_menu->get_result();
+            while ($row = $result_income_menu->fetch_assoc()) {
+                $income_by_menu[] = $row;
+            }
+            $stmt_income_menu->close();
+        }
     }
     $stmt->close();
 }
@@ -474,6 +511,63 @@ $conn->close();
                             </div>
                         <?php else: ?>
                             <div class="alert alert-info">Registra tu agencia para gestionar servicios y menús.</div>
+                        <?php endif; ?>
+
+                        <h3 class="mt-5">Ingresos y Estadísticas</h3>
+                        <?php if ($agency_id): ?>
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card text-white bg-success h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Ingresos Totales Completados</h5>
+                                            <p class="card-text display-4"><?= number_format($total_income_agency, 2) ?> €</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card text-white bg-info h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Pedidos Completados</h5>
+                                            <p class="card-text display-4"><?= $completed_orders_count ?></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h4>Ingresos por Servicio</h4>
+                                    <?php if (count($income_by_service) > 0): ?>
+                                        <ul class="list-group mb-3">
+                                            <?php foreach ($income_by_service as $item): ?>
+                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                    <?= htmlspecialchars($item['item_name']) ?>
+                                                    <span class="badge bg-primary rounded-pill"><?= number_format($item['total_item_income'], 2) ?> €</span>
+                                                </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    <?php else: ?>
+                                        <p class="text-muted">No hay ingresos por servicios completados.</p>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="col-md-6">
+                                    <h4>Ingresos por Menú/Paquete</h4>
+                                    <?php if (count($income_by_menu) > 0): ?>
+                                        <ul class="list-group mb-3">
+                                            <?php foreach ($income_by_menu as $item): ?>
+                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                    <?= htmlspecialchars($item['item_name']) ?>
+                                                    <span class="badge bg-primary rounded-pill"><?= number_format($item['total_item_income'], 2) ?> €</span>
+                                                </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    <?php else: ?>
+                                        <p class="text-muted">No hay ingresos por menús/paquetes completados.</p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        <?php else: ?>
+                            <div class="alert alert-info">Registra tu agencia para ver tus ingresos y estadísticas.</div>
                         <?php endif; ?>
 
                         <h3 class="mt-5">Pedidos Recibidos</h3>

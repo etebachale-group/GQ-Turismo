@@ -298,6 +298,32 @@ if ($user_type === 'super_admin') {
             $guia_services[] = $row;
         }
         $stmt_services->close();
+
+        // Obtener datos de ingresos y estadísticas para el guía
+        $total_income_guia = 0;
+        $completed_orders_count_guia = 0;
+        $income_by_service_guia = [];
+
+        if ($guia_id) {
+            // Total de ingresos y pedidos completados
+            $stmt_income_summary = $conn->prepare("SELECT SUM(precio_total) as total_income, COUNT(*) as completed_count FROM pedidos_servicios WHERE tipo_proveedor = 'guia' AND id_proveedor = ? AND estado = 'completado'");
+            $stmt_income_summary->bind_param("i", $guia_id);
+            $stmt_income_summary->execute();
+            $result_income_summary = $stmt_income_summary->get_result()->fetch_assoc();
+            $total_income_guia = $result_income_summary['total_income'] ?? 0;
+            $completed_orders_count_guia = $result_income_summary['completed_count'] ?? 0;
+            $stmt_income_summary->close();
+
+            // Ingresos por servicio
+            $stmt_income_service = $conn->prepare("SELECT ps.item_name, SUM(ps.precio_total) as total_item_income FROM pedidos_servicios ps WHERE ps.tipo_proveedor = 'guia' AND ps.id_proveedor = ? AND ps.tipo_item = 'servicio' AND ps.estado = 'completado' GROUP BY ps.item_name ORDER BY total_item_income DESC");
+            $stmt_income_service->bind_param("i", $guia_id);
+            $stmt_income_service->execute();
+            $result_income_service = $stmt_income_service->get_result();
+            while ($row = $result_income_service->fetch_assoc()) {
+                $income_by_service_guia[] = $row;
+            }
+            $stmt_income_service->close();
+        }
     }
     $stmt->close();
 }
@@ -537,6 +563,44 @@ $conn->close();
                             </div>
                         <?php else: ?>
                             <div class="alert alert-info">Registra tu perfil de guía para gestionar imágenes y servicios.</div>
+                        <?php endif; ?>
+
+                        <h3 class="mt-5">Ingresos y Estadísticas</h3>
+                        <?php if ($guia_id): ?>
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card text-white bg-success h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Ingresos Totales Completados</h5>
+                                            <p class="card-text display-4"><?= number_format($total_income_guia, 2) ?> €</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card text-white bg-info h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Pedidos Completados</h5>
+                                            <p class="card-text display-4"><?= $completed_orders_count_guia ?></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h4>Ingresos por Servicio</h4>
+                            <?php if (count($income_by_service_guia) > 0): ?>
+                                <ul class="list-group mb-3">
+                                    <?php foreach ($income_by_service_guia as $item): ?>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <?= htmlspecialchars($item['item_name']) ?>
+                                            <span class="badge bg-primary rounded-pill"><?= number_format($item['total_item_income'], 2) ?> €</span>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php else: ?>
+                                <p class="text-muted">No hay ingresos por servicios completados.</p>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <div class="alert alert-info">Registra tu perfil de guía para ver tus ingresos y estadísticas.</div>
                         <?php endif; ?>
 
                         <h3 class="mt-5">Pedidos Recibidos</h3>
