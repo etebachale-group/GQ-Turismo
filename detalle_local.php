@@ -136,7 +136,10 @@ if ($conn) {
                         <p class="card-text">¿Interesado en los servicios de este local? Contáctalos directamente.</p>
                         <a href="mailto:<?= htmlspecialchars($local['contacto_email']) ?>" class="btn btn-primary w-100 mb-2">Enviar Email</a>
                         <?php if ($local['contacto_telefono']): ?>
-                            <a href="tel:<?= htmlspecialchars($local['contacto_telefono']) ?>" class="btn btn-outline-secondary w-100">Llamar</a>
+                            <a href="tel:<?= htmlspecialchars($local['contacto_telefono']) ?>" class="btn btn-outline-secondary w-100 mb-2">Llamar</a>
+                        <?php endif; ?>
+                        <?php if (isset($_SESSION['user_id']) && $_SESSION['user_type'] === 'turista'): ?>
+                            <button type="button" class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#sendMessageModal" data-receiver-id="<?= htmlspecialchars($local['id']) ?>" data-receiver-type="local" data-receiver-name="<?= htmlspecialchars($local['nombre_local']) ?>">Enviar Mensaje</button>
                         <?php endif; ?>
                     </div>
                 </div>
