@@ -535,8 +535,6 @@ $conn->close();
 
                     <?php endif; // Fin de la lógica para usuario tipo agencia ?>
 
-                    <?php endif; // Fin de la lógica para usuario tipo agencia ?>
-
                 <?php if ($user_type === 'super_admin'): ?>
                     <h2 class="mt-5">Listado de Agencias</h2>
                     <div class="table-responsive">
