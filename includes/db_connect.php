@@ -1,8 +1,8 @@
 <?php
-$servername = "localhost";
-$username = "etebachalegroup"; // Default XAMPP username
-$password = "206849";     // Default XAMPP password
-$dbname = "gq_turismo";
+$servername = "db.fr-pari1.bengt.wasmernet.com";
+$username = "7dac3e31711c80004701f5adfe4b"; // Default XAMPP username
+$password = "068f7dac-3e31-72ec-8000-ff18f4270a94";     // Default XAMPP password
+$dbname = "gqturismo_db";
 
 // Crear conexión
 $conn = new mysqli($servername, $username, $password, $dbname);
