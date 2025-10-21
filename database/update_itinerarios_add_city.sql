@@ -1,0 +1,2 @@
+ALTER TABLE itinerarios
+ADD COLUMN ciudad VARCHAR(255) NULL;

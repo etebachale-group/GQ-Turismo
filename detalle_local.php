@@ -60,6 +60,27 @@ if ($conn) {
     $conn->close();
 }
 
+// Fetch reviews and average rating for the local
+$average_rating = 0;
+$total_reviews = 0;
+$reviews = [];
+
+if ($local) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, 'http://localhost/GQ-Turismo/api/reviews.php?provider_id=' . $local['id'] . '&provider_type=local');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    $reviews_json = curl_exec($ch);
+    curl_close($ch);
+
+    $reviews_data = json_decode($reviews_json, true);
+
+    if ($reviews_data && $reviews_data['success']) {
+        $average_rating = $reviews_data['average_rating'];
+        $total_reviews = $reviews_data['total_reviews'];
+        $reviews = $reviews_data['reviews'];
+    }
+}
+
 ?>
 
 <div class="container py-5">
@@ -126,6 +147,41 @@ if ($conn) {
                     </div>
                 <?php else: ?>
                     <p class="text-muted">Este local no tiene imágenes en su galería.</p>
+                <?php endif; ?>
+
+                <h2 class="mt-5 mb-3">Valoraciones y Reseñas</h2>
+                <?php if ($local): ?>
+                    <div class="mb-4">
+                        <?php if ($total_reviews > 0): ?>
+                            <p class="lead">Puntuación Media: <strong><?= number_format($average_rating, 1) ?> / 5</strong> (basado en <?= $total_reviews ?> valoraciones)</p>
+                            <div class="d-flex align-items-center mb-3">
+                                <?php for ($i = 1; $i <= 5; $i++): ?>
+                                    <i class="bi bi-star<?= ($i <= round($average_rating)) ? '-fill text-warning' : '' ?> me-1"></i>
+                                <?php endfor; ?>
+                            </div>
+                        <?php else: ?>
+                            <p class="lead">Este local aún no tiene valoraciones.</p>
+                        <?php endif; ?>
+                    </div>
+
+                    <?php if (count($reviews) > 0): ?>
+                        <div class="list-group">
+                            <?php foreach ($reviews as $review): ?>
+                                <div class="list-group-item mb-3">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1"><?= htmlspecialchars($review['reviewer_name']) ?></h5>
+                                        <small><?= date('d/m/Y', strtotime($review['timestamp'])) ?></small>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                                            <i class="bi bi-star<?= ($i <= $review['rating']) ? '-fill text-warning' : '' ?> me-1"></i>
+                                        <?php endfor; ?>
+                                    </div>
+                                    <p class="mb-1"><?= nl2br(htmlspecialchars($review['comment'])) ?></p>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 <?php endif; ?>
 
             </div>

@@ -1,6 +1,8 @@
 /* Navbar scroll effect */
 .navbar {
     transition: background-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    padding-top: 0.5rem; /* Adjust as needed */
+    padding-bottom: 0.5rem; /* Adjust as needed */
 }
 
 .navbar {
@@ -9,7 +11,7 @@
 
 .navbar .navbar-brand,
 .navbar .nav-link {
-    color: #ffffff;
+    color: #333333; /* Changed to dark for better visibility on transparent background */
 }
 
 .navbar .navbar-toggler-icon {
@@ -34,6 +36,7 @@
 /* General Body & Typography */
 body {
     font-family: 'Lato', sans-serif;
+    padding-top: 76px; /* Adjusted for smaller logo */
 }
 
 h1, h2, h3, h4, h5, h6, .navbar-brand, .btn {

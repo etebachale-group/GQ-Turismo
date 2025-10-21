@@ -76,7 +76,57 @@ if ($conn) {
             }
         }
     }
-    $conn->close();
+} // End of if ($conn) block
+
+// Fetch recently added items for recommendations
+$recently_added_items = [];
+
+if ($conn) { // Ensure connection is open for these queries
+    // Fetch recently added destinations
+    $stmt_destinos = $conn->prepare("SELECT id, nombre as name, 'destino' as type, imagen as ruta_imagen FROM destinos ORDER BY id DESC LIMIT 3");
+    $stmt_destinos->execute();
+    $result_destinos = $stmt_destinos->get_result();
+    while ($row = $result_destinos->fetch_assoc()) {
+        $recently_added_items[] = $row;
+    }
+    $stmt_destinos->close();
+
+    // Fetch recently added agencies
+    $stmt_agencias = $conn->prepare("SELECT id, nombre_agencia as name, 'agencia' as type, NULL as ruta_imagen FROM agencias ORDER BY id DESC LIMIT 3");
+    $stmt_agencias->execute();
+    $result_agencias = $stmt_agencias->get_result();
+    while ($row = $result_agencias->fetch_assoc()) {
+        $recently_added_items[] = $row;
+    }
+    $stmt_agencias->close();
+
+    // Fetch recently added guides
+    $stmt_guias = $conn->prepare("SELECT id, nombre_guia as name, 'guia' as type, NULL as ruta_imagen FROM guias_turisticos ORDER BY id DESC LIMIT 3");
+    $stmt_guias->execute();
+    $result_guias = $stmt_guias->get_result();
+    while ($row = $result_guias->fetch_assoc()) {
+        $recently_added_items[] = $row;
+    }
+    $stmt_guias->close();
+
+    // Fetch recently added locales
+    $stmt_locales = $conn->prepare("SELECT id, nombre_local as name, 'local' as type, NULL as ruta_imagen FROM lugares_locales ORDER BY id DESC LIMIT 3");
+    $stmt_locales->execute();
+    $result_locales = $stmt_locales->get_result();
+    while ($row = $result_locales->fetch_assoc()) {
+        $recently_added_items[] = $row;
+    }
+    $stmt_locales->close();
+
+    // Sort all recently added items by their ID (assuming higher ID means more recent)
+    usort($recently_added_items, function($a, $b) {
+        return $b['id'] <=> $a['id'];
+    });
+
+    // Limit to top 6 overall recent items
+    $recently_added_items = array_slice($recently_added_items, 0, 6);
+
+    $conn->close(); // Close connection after all queries
 }
 ?>
 
@@ -134,6 +184,32 @@ if ($conn) {
 </header>
 <?php endif; ?>
 
+<!-- Sección de Búsqueda Avanzada -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <h2 class="fw-bold text-center mb-4">Encuentra tu Aventura Perfecta</h2>
+        <form action="search_results.php" method="GET" class="row g-3 align-items-center">
+            <div class="col-md-6">
+                <label for="search_query" class="visually-hidden">Buscar</label>
+                <input type="text" class="form-control form-control-lg" id="search_query" name="query" placeholder="Buscar destinos, agencias, guías o locales...">
+            </div>
+            <div class="col-md-3">
+                <label for="search_type" class="visually-hidden">Tipo</label>
+                <select class="form-select form-select-lg" id="search_type" name="type">
+                    <option value="all">Todos</option>
+                    <option value="destinos">Destinos</option>
+                    <option value="agencias">Agencias</option>
+                    <option value="guias">Guías</option>
+                    <option value="locales">Locales</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary btn-lg w-100">Buscar</button>
+            </div>
+        </form>
+    </div>
+</section>
+
 <?php if (!empty($carouseles_activos)): ?>
 <!-- Carousel de Publicidades -->
 <section class="py-5">
@@ -164,6 +240,54 @@ if ($conn) {
     </div>
 </section>
 <?php endif; ?>
+
+<!-- Sección de Recién Añadidos -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="fw-bold text-center mb-4">Explora lo Más Nuevo</h2>
+        <?php if (count($recently_added_items) > 0): ?>
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                <?php foreach ($recently_added_items as $item): ?>
+                    <div class="col">
+                        <div class="card h-100 shadow-sm">
+                            <?php 
+                                $image_path = '';
+                                if ($item['type'] === 'destino' && !empty($item['ruta_imagen'])) {
+                                    $image_path = 'assets/img/destinos/' . $item['ruta_imagen'];
+                                } else if ($item['type'] === 'agencia') {
+                                    $image_path = 'assets/img/agencias/default.jpg'; // Placeholder
+                                } else if ($item['type'] === 'guia') {
+                                    $image_path = 'assets/img/guias/default.jpg'; // Placeholder
+                                } else if ($item['type'] === 'local') {
+                                    $image_path = 'assets/img/locales/default.jpg'; // Placeholder
+                                }
+                            ?>
+                            <?php if (!empty($image_path)): ?>
+                                <img src="<?= $image_path ?>" class="card-img-top" alt="<?= htmlspecialchars($item['name']) ?>" style="height: 200px; object-fit: cover;">
+                            <?php endif; ?>
+                            <div class="card-body">
+                                <h5 class="card-title"><?= htmlspecialchars($item['name']) ?></h5>
+                                <h6 class="card-subtitle mb-2 text-muted"><?= htmlspecialchars(ucfirst($item['type'])) ?></h6>
+                            </div>
+                            <div class="card-footer">
+                                <?php 
+                                    $detail_page = '#';
+                                    if ($item['type'] === 'destino') $detail_page = 'detalle_destino.php?id=' . $item['id'];
+                                    else if ($item['type'] === 'agencia') $detail_page = 'detalle_agencia.php?id=' . $item['id'];
+                                    else if ($item['type'] === 'guia') $detail_page = 'detalle_guia.php?id=' . $item['id'];
+                                    else if ($item['type'] === 'local') $detail_page = 'detalle_local.php?id=' . $item['id'];
+                                ?>
+                                <a href="<?= $detail_page ?>" class="btn btn-primary btn-sm">Ver Detalles</a>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <div class="alert alert-info text-center">No hay elementos recién añadidos para mostrar.</div>
+        <?php endif; ?>
+    </div>
+</section>
 
 <?php if ($is_logged_in && $user_type === 'turista'): ?>
 <!-- Sección de Resumen para Turistas -->

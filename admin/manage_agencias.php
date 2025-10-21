@@ -282,6 +282,74 @@ if ($user_type === 'super_admin') {
             }
             $stmt_income_menu->close();
         }
+
+        // Lógica para añadir/editar descuento
+        if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST['form_type'] == 'add_edit_discount') {
+            $discount_code = $_POST['discount_code'] ?? '';
+            $percentage = $_POST['percentage'] ?? 0;
+            $start_date = $_POST['start_date'] ?? '';
+            $end_date = $_POST['end_date'] ?? '';
+            $discount_id = $_POST['discount_id'] ?? null;
+
+            if (empty($discount_code) || empty($percentage) || empty($start_date) || empty($end_date)) {
+                $message = "<div class='alert alert-danger'>Todos los campos del descuento son obligatorios.</div>";
+            } else if ($agency_id) {
+                if ($discount_id) {
+                    // Editar descuento existente
+                    $stmt = $conn->prepare("UPDATE descuentos SET discount_code = ?, percentage = ?, start_date = ?, end_date = ? WHERE id = ? AND agency_id = ?");
+                    $stmt->bind_param("sdsii", $discount_code, $percentage, $start_date, $end_date, $discount_id, $agency_id);
+                } else {
+                    // Añadir nuevo descuento
+                    $stmt = $conn->prepare("INSERT INTO descuentos (agency_id, discount_code, percentage, start_date, end_date) VALUES (?, ?, ?, ?, ?)");
+                    $stmt->bind_param("isdss", $agency_id, $discount_code, $percentage, $start_date, $end_date);
+                }
+                if ($stmt->execute()) {
+                    $message = "<div class='alert alert-success'>Descuento guardado con éxito.</div>";
+                } else {
+                    $message = "<div class='alert alert-danger'>Error al guardar el descuento: " . $stmt->error . "</div>";
+                }
+                $stmt->close();
+            } else {
+                $message = "<div class='alert alert-danger'>Primero debes registrar tu agencia para gestionar descuentos.</div>";
+            }
+        }
+
+        // Lógica para eliminar descuento
+        if (isset($_GET['action']) && $_GET['action'] == 'delete_discount' && isset($_GET['id'])) {
+            $discount_to_delete_id = $_GET['id'];
+            if ($user_type === 'super_admin') {
+                $stmt = $conn->prepare("DELETE FROM descuentos WHERE id = ?");
+                $stmt->bind_param("i", $discount_to_delete_id);
+            } else if ($user_type === 'agencia' && $agency_id) {
+                $stmt = $conn->prepare("DELETE FROM descuentos WHERE id = ? AND agency_id = ?");
+                $stmt->bind_param("ii", $discount_to_delete_id, $agency_id);
+            } else {
+                $message = "<div class='alert alert-danger'>No tienes permiso para eliminar este descuento.</div>";
+                $stmt = null;
+            }
+
+            if ($stmt) {
+                if ($stmt->execute()) {
+                    $message = "<div class='alert alert-success'>Descuento eliminado con éxito.</div>";
+                } else {
+                    $message = "<div class='alert alert-danger'>Error al eliminar el descuento: " . $stmt->error . "</div>";
+                }
+                $stmt->close();
+            }
+        }
+
+        // Obtener descuentos de la agencia
+        $agency_discounts = [];
+        if ($agency_id) {
+            $stmt_discounts = $conn->prepare("SELECT id, discount_code, percentage, start_date, end_date, is_active FROM descuentos WHERE agency_id = ? ORDER BY end_date DESC");
+            $stmt_discounts->bind_param("i", $agency_id);
+            $stmt_discounts->execute();
+            $result_discounts = $stmt_discounts->get_result();
+            while ($row = $result_discounts->fetch_assoc()) {
+                $agency_discounts[] = $row;
+            }
+            $stmt_discounts->close();
+        }
     }
     $stmt->close();
 }
@@ -568,6 +636,71 @@ $conn->close();
                             </div>
                         <?php else: ?>
                             <div class="alert alert-info">Registra tu agencia para ver tus ingresos y estadísticas.</div>
+                        <?php endif; ?>
+
+                        <h3 class="mt-5">Gestionar Descuentos</h3>
+                        <?php if ($agency_id): ?>
+                            <form action="manage_agencias.php" method="POST" class="mb-4">
+                                <input type="hidden" name="form_type" value="add_edit_discount">
+                                <input type="hidden" name="discount_id" value="">
+                                <div class="row g-2">
+                                    <div class="col-md-3">
+                                        <input type="text" class="form-control" name="discount_code" placeholder="Código de Descuento" required>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="number" step="0.01" class="form-control" name="percentage" placeholder="Porcentaje" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <input type="date" class="form-control" name="start_date" title="Fecha de Inicio" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <input type="date" class="form-control" name="end_date" title="Fecha de Fin" required>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button type="submit" class="btn btn-success w-100">Añadir</button>
+                                    </div>
+                                </div>
+                            </form>
+
+                            <div class="table-responsive">
+                                <table class="table table-striped table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Código</th>
+                                            <th>Porcentaje</th>
+                                            <th>Inicio</th>
+                                            <th>Fin</th>
+                                            <th>Activo</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php if (count($agency_discounts) > 0): ?>
+                                            <?php foreach ($agency_discounts as $discount): ?>
+                                                <tr>
+                                                    <td><?= htmlspecialchars($discount['id']) ?></td>
+                                                    <td><?= htmlspecialchars($discount['discount_code']) ?></td>
+                                                    <td><?= htmlspecialchars(number_format($discount['percentage'], 2)) ?>%</td>
+                                                    <td><?= htmlspecialchars($discount['start_date']) ?></td>
+                                                    <td><?= htmlspecialchars($discount['end_date']) ?></td>
+                                                    <td><?= $discount['is_active'] ? 'Sí' : 'No' ?></td>
+                                                    <td>
+                                                        <!-- Implementar edición de descuento si es necesario -->
+                                                        <a href="manage_agencias.php?action=delete_discount&id=<?= htmlspecialchars($discount['id']) ?>" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar este descuento?');">Eliminar</a>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <tr>
+                                                <td colspan="7">No hay descuentos registrados.</td>
+                                            </tr>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <div class="alert alert-info">Registra tu agencia para gestionar descuentos.</div>
                         <?php endif; ?>
 
                         <h3 class="mt-5">Pedidos Recibidos</h3>

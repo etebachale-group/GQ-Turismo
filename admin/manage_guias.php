@@ -565,6 +565,31 @@ $conn->close();
                             <div class="alert alert-info">Registra tu perfil de guía para gestionar imágenes y servicios.</div>
                         <?php endif; ?>
 
+                        <h3 class="mt-5">Actualizar Ubicación</h3>
+                        <?php if ($guia_id): ?>
+                            <div class="card shadow-sm mb-4">
+                                <div class="card-body">
+                                    <h5 class="card-title">Mi Ubicación Actual</h5>
+                                    <form id="updateLocationForm">
+                                        <input type="hidden" id="guiaId" value="<?= htmlspecialchars($guia_id) ?>">
+                                        <div class="mb-3">
+                                            <label for="latitude" class="form-label">Latitud</label>
+                                            <input type="text" class="form-control" id="latitude" name="latitude" readonly>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="longitude" class="form-label">Longitud</label>
+                                            <input type="text" class="form-control" id="longitude" name="longitude" readonly>
+                                        </div>
+                                        <button type="button" class="btn btn-primary" id="getLocationBtn"><i class="bi bi-geo-alt-fill"></i> Obtener Mi Ubicación</button>
+                                        <button type="submit" class="btn btn-success ms-2">Guardar Ubicación</button>
+                                        <div id="locationMessage" class="mt-3"></div>
+                                    </form>
+                                </div>
+                            </div>
+                        <?php else: ?>
+                            <div class="alert alert-info">Registra tu perfil de guía para actualizar tu ubicación.</div>
+                        <?php endif; ?>
+
                         <h3 class="mt-5">Ingresos y Estadísticas</h3>
                         <?php if ($guia_id): ?>
                             <div class="row mb-4">
@@ -668,6 +693,8 @@ $conn->close();
 
                     <?php endif; // Fin de la lógica para usuario tipo guia ?>
 
+                    <?php endif; // Fin de la lógica para usuario tipo guia ?>
+
                 <?php if ($user_type === 'super_admin'): ?>
                     <h2 class="mt-5">Listado de Guías Turísticos</h2>
                     <div class="table-responsive">
@@ -714,5 +741,81 @@ $conn->close();
     </div>
 
     <script src="../assets/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const getLocationBtn = document.getElementById('getLocationBtn');
+            const updateLocationForm = document.getElementById('updateLocationForm');
+            const latitudeInput = document.getElementById('latitude');
+            const longitudeInput = document.getElementById('longitude');
+            const guiaIdInput = document.getElementById('guiaId');
+            const locationMessage = document.getElementById('locationMessage');
+
+            if (getLocationBtn) {
+                getLocationBtn.addEventListener('click', function() {
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(showPosition, showError);
+                    } else {
+                        locationMessage.innerHTML = '<div class="alert alert-danger">La geolocalización no es soportada por este navegador.</div>';
+                    }
+                });
+            }
+
+            function showPosition(position) {
+                latitudeInput.value = position.coords.latitude;
+                longitudeInput.value = position.coords.longitude;
+                locationMessage.innerHTML = '<div class="alert alert-success">Ubicación obtenida con éxito. Ahora puedes guardarla.</div>';
+            }
+
+            function showError(error) {
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        locationMessage.innerHTML = '<div class="alert alert-danger">Usuario denegó la solicitud de geolocalización.</div>';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        locationMessage.innerHTML = '<div class="alert alert-danger">Información de ubicación no disponible.</div>';
+                        break;
+                    case error.TIMEOUT:
+                        locationMessage.innerHTML = '<div class="alert alert-danger">La solicitud para obtener la ubicación ha caducado.</div>';
+                        break;
+                    case error.UNKNOWN_ERROR:
+                        locationMessage.innerHTML = '<div class="alert alert-danger">Ha ocurrido un error desconocido.</div>';
+                        break;
+                }
+            }
+
+            if (updateLocationForm) {
+                updateLocationForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    locationMessage.innerHTML = '<div class="alert alert-info">Guardando ubicación...</div>';
+
+                    const formData = {
+                        guia_id: guiaIdInput.value,
+                        latitude: latitudeInput.value,
+                        longitude: longitudeInput.value
+                    };
+
+                    fetch('../api/location.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            locationMessage.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+                        } else {
+                            locationMessage.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        locationMessage.innerHTML = '<div class="alert alert-danger">Hubo un error de conexión. Por favor, inténtalo de nuevo más tarde.</div>';
+                    });
+                });
+            }
+        });
+    </script>
 </body>
 </html>

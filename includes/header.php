@@ -35,8 +35,7 @@
 <nav class="navbar navbar-expand-lg fixed-top">
   <div class="container">
     <a class="navbar-brand fw-bold" href="index.php">
-      <img src="assets/img/logo.png" alt="GQ-Turismo Logo" width="30" height="30" class="d-inline-block align-text-top">
-      GQ-Turismo
+      <img src="assets/img/logo.png" alt="GQ-Turismo Logo" width="60" height="60" class="d-inline-block align-text-top">
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>

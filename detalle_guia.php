@@ -1,5 +1,7 @@
-<?php
-require_once 'includes/header.php';
+<?php require_once 'includes/header.php';
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 
 // 1. Validar el ID que llega por GET
 if (!isset($_GET['id']) || !filter_var($_GET['id'], FILTER_VALIDATE_INT)) {
@@ -46,9 +48,43 @@ if ($conn) {
 
     }
     $stmt->close();
-    $conn->close();
+} // End of if ($conn) block
+
+// Fetch guide's current location
+$guia_location = null;
+if ($guia) {
+    $stmt_location = $conn->prepare("SELECT current_latitude, current_longitude, last_updated FROM guias_turisticos WHERE id = ?");
+    $stmt_location->bind_param("i", $id_guia);
+    $stmt_location->execute();
+    $result_location = $stmt_location->get_result();
+    if ($result_location->num_rows > 0) {
+        $guia_location = $result_location->fetch_assoc();
+    }
+    $stmt_location->close();
 }
 
+// Fetch reviews and average rating for the guide
+$average_rating = 0;
+$total_reviews = 0;
+$reviews = [];
+
+if ($guia) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, 'http://localhost/GQ-Turismo/api/reviews.php?provider_id=' . $guia['id'] . '&provider_type=guia');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    $reviews_json = curl_exec($ch);
+    curl_close($ch);
+
+    $reviews_data = json_decode($reviews_json, true);
+
+    if ($reviews_data && $reviews_data['success']) {
+        $average_rating = $reviews_data['average_rating'];
+        $total_reviews = $reviews_data['total_reviews'];
+        $reviews = $reviews_data['reviews'];
+    }
+}
+
+$conn->close(); // Close connection at the very end of the script
 ?>
 
 <div class="container py-5">
@@ -101,6 +137,53 @@ if ($conn) {
                     </div>
                 <?php else: ?>
                     <p class="text-muted">Este guía no tiene imágenes en su galería.</p>
+                <?php endif; ?>
+
+                <h2 class="mt-5 mb-3">Ubicación Actual del Guía</h2>
+                <?php if ($guia_location && $guia_location['current_latitude'] && $guia_location['current_longitude']): ?>
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <div id="map" style="height: 400px; width: 100%;"></div>
+                            <p class="card-text mt-3"><small class="text-muted">Última actualización: <?= htmlspecialchars($guia_location['last_updated']) ?></small></p>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div class="alert alert-info text-center">Ubicación del guía no disponible o no actualizada.</div>
+                <?php endif; ?>
+
+                <h2 class="mt-5 mb-3">Valoraciones y Reseñas</h2>
+                <?php if ($guia): ?>
+                    <div class="mb-4">
+                        <?php if ($total_reviews > 0): ?>
+                            <p class="lead">Puntuación Media: <strong><?= number_format($average_rating, 1) ?> / 5</strong> (basado en <?= $total_reviews ?> valoraciones)</p>
+                            <div class="d-flex align-items-center mb-3">
+                                <?php for ($i = 1; $i <= 5; $i++): ?>
+                                    <i class="bi bi-star<?= ($i <= round($average_rating)) ? '-fill text-warning' : '' ?> me-1"></i>
+                                <?php endfor; ?>
+                            </div>
+                        <?php else: ?>
+                            <p class="lead">Este guía aún no tiene valoraciones.</p>
+                        <?php endif; ?>
+                    </div>
+
+                    <?php if (count($reviews) > 0): ?>
+                        <div class="list-group">
+                            <?php foreach ($reviews as $review): ?>
+                                <div class="list-group-item mb-3">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1"><?= htmlspecialchars($review['reviewer_name']) ?></h5>
+                                        <small><?= date('d/m/Y', strtotime($review['timestamp'])) ?></small>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                                            <i class="bi bi-star<?= ($i <= $review['rating']) ? '-fill text-warning' : '' ?> me-1"></i>
+                                        <?php endfor; ?>
+                                    </div>
+                                    <p class="mb-1"><?= nl2br(htmlspecialchars($review['comment'])) ?></p>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 <?php endif; ?>
 
             </div>
@@ -200,6 +283,7 @@ if ($conn) {
   </div>
 </div>
 
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const orderServiceModal = document.getElementById('orderServiceModal');
@@ -354,6 +438,23 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+    // Lógica para el mapa de ubicación del guía
+    const mapElement = document.getElementById('map');
+    <?php if ($guia_location && $guia_location['current_latitude'] && $guia_location['current_longitude']): ?>
+        if (mapElement) {
+            const latitude = <?= $guia_location['current_latitude'] ?>;
+            const longitude = <?= $guia_location['current_longitude'] ?>;
+            const map = L.map('map').setView([latitude, longitude], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            L.marker([latitude, longitude]).addTo(map)
+                .bindPopup('<b>Ubicación actual del guía</b><br>Última actualización: <?= htmlspecialchars($guia_location['last_updated']) ?>')
+                .openPopup();
+        }
+    <?php endif; ?>
 });
 </script>
 

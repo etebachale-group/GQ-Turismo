@@ -49,6 +49,27 @@ if ($conn) {
     $conn->close();
 }
 
+// Fetch reviews and average rating for the agency
+$average_rating = 0;
+$total_reviews = 0;
+$reviews = [];
+
+if ($agencia) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, 'http://localhost/GQ-Turismo/api/reviews.php?provider_id=' . $agencia['id'] . '&provider_type=agencia');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    $reviews_json = curl_exec($ch);
+    curl_close($ch);
+
+    $reviews_data = json_decode($reviews_json, true);
+
+    if ($reviews_data && $reviews_data['success']) {
+        $average_rating = $reviews_data['average_rating'];
+        $total_reviews = $reviews_data['total_reviews'];
+        $reviews = $reviews_data['reviews'];
+    }
+}
+
 ?>
 
 <div class="container py-5">
@@ -97,6 +118,41 @@ if ($conn) {
                     <p class="text-muted">Esta agencia no tiene menús o paquetes registrados.</p>
                 <?php endif; ?>
 
+                <h2 class="mt-5 mb-3">Valoraciones y Reseñas</h2>
+                <?php if ($agencia): ?>
+                    <div class="mb-4">
+                        <?php if ($total_reviews > 0): ?>
+                            <p class="lead">Puntuación Media: <strong><?= number_format($average_rating, 1) ?> / 5</strong> (basado en <?= $total_reviews ?> valoraciones)</p>
+                            <div class="d-flex align-items-center mb-3">
+                                <?php for ($i = 1; $i <= 5; $i++): ?>
+                                    <i class="bi bi-star<?= ($i <= round($average_rating)) ? '-fill text-warning' : '' ?> me-1"></i>
+                                <?php endfor; ?>
+                            </div>
+                        <?php else: ?>
+                            <p class="lead">Esta agencia aún no tiene valoraciones.</p>
+                        <?php endif; ?>
+                    </div>
+
+                    <?php if (count($reviews) > 0): ?>
+                        <div class="list-group">
+                            <?php foreach ($reviews as $review): ?>
+                                <div class="list-group-item mb-3">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1"><?= htmlspecialchars($review['reviewer_name']) ?></h5>
+                                        <small><?= date('d/m/Y', strtotime($review['timestamp'])) ?></small>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                                            <i class="bi bi-star<?= ($i <= $review['rating']) ? '-fill text-warning' : '' ?> me-1"></i>
+                                        <?php endfor; ?>
+                                    </div>
+                                    <p class="mb-1"><?= nl2br(htmlspecialchars($review['comment'])) ?></p>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                <?php endif; ?>
+
             </div>
             <div class="col-lg-4">
                 <div class="card shadow-sm">
@@ -112,6 +168,15 @@ if ($conn) {
                         <?php endif; ?>
                     </div>
                 </div>
+                <?php if (isset($_SESSION['user_id']) && $_SESSION['user_type'] === 'turista'): ?>
+                    <div class="card shadow-sm mt-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Valorar Agencia</h5>
+                            <p class="card-text">¿Has utilizado los servicios de esta agencia? ¡Deja tu valoración!</p>
+                            <button type="button" class="btn btn-warning w-100" data-bs-toggle="modal" data-bs-target="#submitReviewModal" data-provider-id="<?= htmlspecialchars($agencia['id']) ?>" data-provider-type="agencia" data-provider-name="<?= htmlspecialchars($agencia['nombre_agencia']) ?>">Dejar Valoración</button>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     <?php else: ?>
@@ -177,6 +242,76 @@ if ($conn) {
           </div>
           <div id="sendMessageResponse" class="mt-3"></div>
           <button type="submit" class="btn btn-primary w-100">Enviar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para Enviar Valoración -->
+<div class="modal fade" id="submitReviewModal" tabindex="-1" aria-labelledby="submitReviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="submitReviewModalLabel">Dejar Valoración para <span id="modalReviewProviderName"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="submitReviewForm">
+          <input type="hidden" id="reviewProviderId" name="provider_id">
+          <input type="hidden" id="reviewProviderType" name="provider_type">
+          <div class="mb-3">
+            <label for="reviewRating" class="form-label">Puntuación (1-5 estrellas)</label>
+            <select class="form-select" id="reviewRating" name="rating" required>
+              <option value="">Selecciona una puntuación</option>
+              <option value="5">5 Estrellas</option>
+              <option value="4">4 Estrellas</option>
+              <option value="3">3 Estrellas</option>
+              <option value="2">2 Estrellas</option>
+              <option value="1">1 Estrella</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="reviewComment" class="form-label">Comentario (Opcional)</label>
+            <textarea class="form-control" id="reviewComment" name="comment" rows="3"></textarea>
+          </div>
+          <div id="submitReviewResponse" class="mt-3"></div>
+          <button type="submit" class="btn btn-primary w-100">Enviar Valoración</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para Enviar Valoración -->
+<div class="modal fade" id="submitReviewModal" tabindex="-1" aria-labelledby="submitReviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="submitReviewModalLabel">Dejar Valoración para <span id="modalReviewProviderName"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="submitReviewForm">
+          <input type="hidden" id="reviewProviderId" name="provider_id">
+          <input type="hidden" id="reviewProviderType" name="provider_type">
+          <div class="mb-3">
+            <label for="reviewRating" class="form-label">Puntuación (1-5 estrellas)</label>
+            <select class="form-select" id="reviewRating" name="rating" required>
+              <option value="">Selecciona una puntuación</option>
+              <option value="5">5 Estrellas</option>
+              <option value="4">4 Estrellas</option>
+              <option value="3">3 Estrellas</option>
+              <option value="2">2 Estrellas</option>
+              <option value="1">1 Estrella</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="reviewComment" class="form-label">Comentario (Opcional)</label>
+            <textarea class="form-control" id="reviewComment" name="comment" rows="3"></textarea>
+          </div>
+          <div id="submitReviewResponse" class="mt-3"></div>
+          <button type="submit" class="btn btn-primary w-100">Enviar Valoración</button>
         </form>
       </div>
     </div>
@@ -323,6 +458,67 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Error:', error);
                 sendMessageResponse.innerHTML = '<div class="alert alert-danger">Hubo un error de conexión. Por favor, inténtalo de nuevo más tarde.</div>';
+            });
+        });
+    }
+
+    // Lógica para el modal de enviar valoración
+    const submitReviewModal = document.getElementById('submitReviewModal');
+    const modalReviewProviderName = document.getElementById('modalReviewProviderName');
+    const reviewProviderId = document.getElementById('reviewProviderId');
+    const reviewProviderType = document.getElementById('reviewProviderType');
+    const reviewRating = document.getElementById('reviewRating');
+    const reviewComment = document.getElementById('reviewComment');
+    const submitReviewForm = document.getElementById('submitReviewForm');
+    const submitReviewResponse = document.getElementById('submitReviewResponse');
+
+    if (submitReviewModal) {
+        submitReviewModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            modalReviewProviderName.textContent = button.dataset.providerName;
+            reviewProviderId.value = button.dataset.providerId;
+            reviewProviderType.value = button.dataset.providerType;
+            reviewRating.value = ''; // Reset rating
+            reviewComment.value = ''; // Clear previous comment
+            submitReviewResponse.innerHTML = ''; // Clear previous response
+        });
+
+        submitReviewForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitReviewResponse.innerHTML = '<div class="alert alert-info">Enviando valoración...</div>';
+
+            const formData = {
+                provider_id: reviewProviderId.value,
+                provider_type: reviewProviderType.value,
+                rating: reviewRating.value,
+                comment: reviewComment.value
+            };
+
+            fetch('api/reviews.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    submitReviewResponse.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+                    submitReviewForm.reset();
+                    // Optionally close modal after a short delay and refresh page
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(submitReviewModal);
+                        modal.hide();
+                        location.reload(); // Reload to show new review
+                    }, 2000);
+                } else {
+                    submitReviewResponse.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                submitReviewResponse.innerHTML = '<div class="alert alert-danger">Hubo un error de conexión. Por favor, inténtalo de nuevo más tarde.</div>';
             });
         });
     }
