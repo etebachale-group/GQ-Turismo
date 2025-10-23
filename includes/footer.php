@@ -90,8 +90,10 @@
 
 <!-- Custom JS -->
 <script src="assets/js/main.js"></script>
+<script src="assets/js/mobile.js"></script>
 <script src="assets/js/map.js"></script>
 <script src="assets/js/auth.js"></script>
+<script src="assets/js/crear_itinerario.js"></script>
 <script src="assets/js/itinerario.js"></script>
 <script src="assets/js/contact.js"></script>
 <script src="assets/js/reservas.js"></script>
@@ -101,6 +103,114 @@
 <script src="assets/js/guias.js"></script>
 <script src="assets/js/locales.js"></script>
 <script src="assets/js/scroll.js"></script>
+
+<!-- Modern UI Navigation Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mobile Menu Toggle
+    const navToggle = document.getElementById('navToggle');
+    const navMobile = document.getElementById('navMobile');
+    
+    if (navToggle && navMobile) {
+        // Toggle function
+        const toggleNavbar = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            navToggle.classList.toggle('active');
+            navMobile.classList.toggle('active');
+            document.body.style.overflow = navMobile.classList.contains('active') ? 'hidden' : '';
+            console.log('Navbar toggle:', navMobile.classList.contains('active') ? 'OPEN' : 'CLOSED');
+        };
+        
+        // Click event (desktop)
+        navToggle.addEventListener('click', toggleNavbar);
+        
+        // Touch event (móvil)
+        navToggle.addEventListener('touchend', function(e) {
+            console.log('Touch event on navbar toggle');
+            toggleNavbar(e);
+        });
+        
+        // Close function
+        const closeNavbar = function() {
+            navToggle.classList.remove('active');
+            navMobile.classList.remove('active');
+            document.body.style.overflow = '';
+            console.log('Navbar closed');
+        };
+        
+        // Close mobile menu when clicking on a link
+        navMobile.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', closeNavbar);
+            link.addEventListener('touchend', closeNavbar);
+        });
+        
+        // Close mobile menu when clicking/touching outside
+        document.addEventListener('click', (e) => {
+            if (!navMobile.contains(e.target) && !navToggle.contains(e.target) && navMobile.classList.contains('active')) {
+                closeNavbar();
+            }
+        });
+        
+        document.addEventListener('touchend', (e) => {
+            if (!navMobile.contains(e.target) && !navToggle.contains(e.target) && navMobile.classList.contains('active')) {
+                closeNavbar();
+            }
+        });
+    }
+    
+    // Active state for current page
+    const currentPage = window.location.pathname.split('/').pop() || 'index.php';
+    
+    // Desktop menu
+    document.querySelectorAll('.navbar-menu .nav-link').forEach(link => {
+        if (link.getAttribute('href') && link.getAttribute('href').includes(currentPage)) {
+            link.classList.add('active');
+        }
+    });
+    
+    // Mobile menu
+    document.querySelectorAll('.navbar-mobile-menu .nav-link').forEach(link => {
+        if (link.getAttribute('href') && link.getAttribute('href').includes(currentPage)) {
+            link.classList.add('active');
+        }
+    });
+    
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            const href = this.getAttribute('href');
+            if (href !== '#' && href !== '#loginModal' && href !== '#registerModal') {
+                e.preventDefault();
+                const target = document.querySelector(href);
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            }
+        });
+    });
+    
+    // Add scroll effect to navbar
+    let lastScroll = 0;
+    window.addEventListener('scroll', () => {
+        const currentScroll = window.pageYOffset;
+        const navbar = document.querySelector('.navbar');
+        
+        if (navbar) {
+            if (currentScroll > 100) {
+                navbar.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.1)';
+            } else {
+                navbar.style.boxShadow = 'var(--shadow-md)';
+            }
+        }
+        
+        lastScroll = currentScroll;
+    });
+});
+</script>
 
 </body>
 </html>

@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Verificar si el usuario ha iniciado sesión y es un super_admin
 if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'super_admin') {
@@ -180,39 +182,7 @@ $conn->close();
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-                <div class="position-sticky pt-3">
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link" href="dashboard.php">Dashboard</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="manage_destinos.php">Destinos</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="reservas.php">Reservas</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="manage_users.php">Usuarios</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="manage_agencias.php">Agencias</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="manage_guias.php">Guías</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="manage_locales.php">Locales</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="manage_publicidad_carousel.php">Publicidad/Carousel</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="logout.php">Cerrar Sesión</a>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
+            <?php include 'sidebar.php'; ?>
 
             <!-- Main content -->
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">

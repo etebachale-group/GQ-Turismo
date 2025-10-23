@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Verificar si el usuario ha iniciado sesión y es un super_admin
 if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'super_admin') {
@@ -61,107 +63,176 @@ if ($result && $result->num_rows > 0) {
 }
 
 $conn->close();
+
+// Configurar título de página
+$page_title = "Gestionar Usuarios";
+include 'admin_header.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestionar Usuarios - Admin</title>
-    <link href="../assets/css/bootstrap.min.css" rel="stylesheet">
-    <link href="../assets/css/style.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-                <div class="position-sticky pt-3">
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link" href="dashboard.php">Dashboard</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="manage_destinos.php">Destinos</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="reservas.php">Reservas</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="manage_users.php">Usuarios</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="logout.php">Cerrar Sesión</a>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
+<!-- Page Header -->
+<div class="admin-page-header">
+    <h1><i class="bi bi-people-fill"></i> Gestionar Usuarios</h1>
+    <p>Administra todos los usuarios de la plataforma GQ-Turismo</p>
+</div>
 
-            <!-- Main content -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2">Gestionar Usuarios</h1>
-                </div>
+<?php if ($message): ?>
+    <?= $message ?>
+<?php endif; ?>
 
-                <?php if ($message): ?>
-                    <?= $message ?>
-                <?php endif; ?>
-
-                <div class="table-responsive">
-                    <table class="table table-striped table-sm">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Email</th>
-                                <th>Tipo de Usuario</th>
-                                <th>Fecha de Registro</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (count($users) > 0): ?>
-                                <?php foreach ($users as $user): ?>
-                                    <tr>
-                                        <td><?= htmlspecialchars($user['id']) ?></td>
-                                        <td><?= htmlspecialchars($user['nombre']) ?></td>
-                                        <td><?= htmlspecialchars($user['email']) ?></td>
-                                        <td>
-                                            <form action="manage_users.php" method="POST" style="display:inline;">
-                                                <input type="hidden" name="action" value="update_type">
-                                                <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
-                                                <select name="new_type" class="form-select form-select-sm" onchange="this.form.submit()">
-                                                    <option value="turista" <?= ($user['tipo_usuario'] == 'turista') ? 'selected' : '' ?>>Turista</option>
-                                                    <option value="agencia" <?= ($user['tipo_usuario'] == 'agencia') ? 'selected' : '' ?>>Agencia de Vuelos</option>
-                                                    <option value="guia" <?= ($user['tipo_usuario'] == 'guia') ? 'selected' : '' ?>>Guía Turístico</option>
-                                                    <option value="local" <?= ($user['tipo_usuario'] == 'local') ? 'selected' : '' ?>>Lugar/Local</option>
-                                                    <option value="super_admin" <?= ($user['tipo_usuario'] == 'super_admin') ? 'selected' : '' ?>>Super Admin</option>
-                                                </select>
-                                            </form>
-                                        </td>
-                                        <td><?= htmlspecialchars($user['fecha_registro']) ?></td>
-                                        <td>
-                                            <?php if ($user['id'] != $_SESSION['user_id']): ?>
-                                                <a href="manage_users.php?action=delete&id=<?= $user['id'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar a este usuario?');">Eliminar</a>
-                                            <?php else: ?>
-                                                <button class="btn btn-danger btn-sm" disabled>Eliminar</button>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="6">No hay usuarios registrados.</td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </main>
+<!-- Stats Cards -->
+<div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: var(--space-xl);">
+    <?php
+    $total_users = count($users);
+    $turistas = count(array_filter($users, fn($u) => $u['tipo_usuario'] == 'turista'));
+    $agencias = count(array_filter($users, fn($u) => $u['tipo_usuario'] == 'agencia'));
+    $guias = count(array_filter($users, fn($u) => $u['tipo_usuario'] == 'guia'));
+    $locales = count(array_filter($users, fn($u) => $u['tipo_usuario'] == 'local'));
+    $admins = count(array_filter($users, fn($u) => $u['tipo_usuario'] == 'super_admin'));
+    ?>
+    
+    <div class="stat-card">
+        <div class="stat-icon primary">
+            <i class="bi bi-people"></i>
+        </div>
+        <div class="stat-content">
+            <h3><?= $total_users ?></h3>
+            <p>Total Usuarios</p>
         </div>
     </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon info">
+            <i class="bi bi-person-circle"></i>
+        </div>
+        <div class="stat-content">
+            <h3><?= $turistas ?></h3>
+            <p>Turistas</p>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon success">
+            <i class="bi bi-building"></i>
+        </div>
+        <div class="stat-content">
+            <h3><?= $agencias ?></h3>
+            <p>Agencias</p>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon warning">
+            <i class="bi bi-person-badge"></i>
+        </div>
+        <div class="stat-content">
+            <h3><?= $guias ?></h3>
+            <p>Guías</p>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon secondary">
+            <i class="bi bi-shop"></i>
+        </div>
+        <div class="stat-content">
+            <h3><?= $locales ?></h3>
+            <p>Locales</p>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon danger">
+            <i class="bi bi-shield-check"></i>
+        </div>
+        <div class="stat-content">
+            <h3><?= $admins ?></h3>
+            <p>Administradores</p>
+        </div>
+    </div>
+</div>
 
-    <script src="../assets/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<!-- Users Table Card -->
+<div class="card">
+    <div class="card-header">
+        <h2><i class="bi bi-table"></i> Listado de Usuarios</h2>
+        <div class="card-header-actions">
+            <input type="text" class="search-input" placeholder="Buscar usuarios..." id="searchUsers">
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table" id="usersTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Tipo de Usuario</th>
+                        <th>Fecha de Registro</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (count($users) > 0): ?>
+                        <?php foreach ($users as $user): ?>
+                            <tr>
+                                <td><strong>#<?= htmlspecialchars($user['id']) ?></strong></td>
+                                <td><?= htmlspecialchars($user['nombre']) ?></td>
+                                <td><small><?= htmlspecialchars($user['email']) ?></small></td>
+                                <td>
+                                    <form action="manage_users.php" method="POST" style="display:inline;">
+                                        <input type="hidden" name="action" value="update_type">
+                                        <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
+                                        <select name="new_type" class="form-select form-select-sm" onchange="if(confirm('¿Cambiar el tipo de usuario?')) this.form.submit();" style="width: auto; display: inline-block;">
+                                            <option value="turista" <?= ($user['tipo_usuario'] == 'turista') ? 'selected' : '' ?>>👤 Turista</option>
+                                            <option value="agencia" <?= ($user['tipo_usuario'] == 'agencia') ? 'selected' : '' ?>>🏢 Agencia</option>
+                                            <option value="guia" <?= ($user['tipo_usuario'] == 'guia') ? 'selected' : '' ?>>🧑‍🏫 Guía</option>
+                                            <option value="local" <?= ($user['tipo_usuario'] == 'local') ? 'selected' : '' ?>>🏪 Local</option>
+                                            <option value="super_admin" <?= ($user['tipo_usuario'] == 'super_admin') ? 'selected' : '' ?>>🛡️ Admin</option>
+                                        </select>
+                                    </form>
+                                </td>
+                                <td><small><?= date('d/m/Y', strtotime($user['fecha_registro'])) ?></small></td>
+                                <td>
+                                    <?php if ($user['id'] != $_SESSION['user_id']): ?>
+                                        <a href="manage_users.php?action=delete&id=<?= $user['id'] ?>" 
+                                           class="btn btn-sm btn-danger" 
+                                           onclick="return confirm('⚠️ ¿Estás seguro de eliminar a <?= htmlspecialchars($user['nombre']) ?>? Esta acción no se puede deshacer.');">
+                                            <i class="bi bi-trash"></i> Eliminar
+                                        </a>
+                                    <?php else: ?>
+                                        <button class="btn btn-sm btn-outline-secondary" disabled title="No puedes eliminar tu propia cuenta">
+                                            <i class="bi bi-shield-lock"></i> Tu cuenta
+                                        </button>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="6" class="text-center" style="padding: var(--space-xl);">
+                                <i class="bi bi-inbox" style="font-size: 3rem; color: var(--gray-400);"></i>
+                                <p style="color: var(--gray-600); margin-top: var(--space-md);">No hay usuarios registrados.</p>
+                            </td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// Búsqueda en tabla
+document.getElementById('searchUsers')?.addEventListener('keyup', function() {
+    const searchTerm = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#usersTable tbody tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+});
+</script>
+
+<?php include 'admin_footer.php'; ?>

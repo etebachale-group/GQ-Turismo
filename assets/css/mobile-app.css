@@ -1,0 +1,554 @@
+/* =============================================
+   MOBILE APP-LIKE EXPERIENCE
+   Progressive Web App (PWA) Styles
+   ============================================= */
+
+/* =============================================
+   1. MOBILE-FIRST IMPROVEMENTS
+   ============================================= */
+
+/* Touch-friendly tap targets (mínimo 44x44px) */
+@media (max-width: 768px) {
+    button,
+    a.btn,
+    input[type="button"],
+    input[type="submit"],
+    .touch-target {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 12px 20px;
+    }
+    
+    /* Espaciado generoso para elementos interactivos */
+    .nav-link,
+    .list-group-item {
+        padding: 16px 20px;
+    }
+}
+
+/* =============================================
+   2. BOTTOM NAVIGATION (Estilo App Móvil)
+   ============================================= */
+
+@media (max-width: 768px) {
+    /* Ocultar navbar tradicional en móvil */
+    .navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: var(--z-fixed);
+        background: var(--white);
+        box-shadow: var(--shadow-md);
+        padding: 12px 16px;
+    }
+    
+    /* Barra de navegación inferior (mobile app style) */
+    .mobile-bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--white);
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        display: flex;
+        justify-content: space-around;
+        padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+        z-index: var(--z-fixed);
+        border-top: 1px solid var(--gray-200);
+    }
+    
+    .mobile-nav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        color: var(--gray-600);
+        padding: 8px;
+        transition: all var(--transition-fast);
+        position: relative;
+    }
+    
+    .mobile-nav-item.active {
+        color: var(--primary);
+    }
+    
+    .mobile-nav-item i {
+        font-size: 24px;
+        margin-bottom: 4px;
+    }
+    
+    .mobile-nav-item span {
+        font-size: 11px;
+        font-weight: 500;
+    }
+    
+    .mobile-nav-item:active {
+        transform: scale(0.95);
+        background: var(--gray-100);
+        border-radius: var(--radius-lg);
+    }
+    
+    /* Añadir espacio en la parte inferior del contenido */
+    body {
+        padding-bottom: 70px; /* Altura de bottom nav */
+    }
+    
+    /* Añadir espacio en la parte superior del contenido */
+    main,
+    .container {
+        padding-top: 70px; /* Altura de navbar superior */
+    }
+}
+
+/* =============================================
+   3. PULL-TO-REFRESH INDICATOR
+   ============================================= */
+
+.pull-refresh-indicator {
+    position: fixed;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%) scale(0);
+    background: var(--white);
+    padding: 12px 24px;
+    border-radius: var(--radius-full);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: var(--z-fixed);
+    transition: transform var(--transition-base);
+}
+
+.pull-refresh-indicator.show {
+    transform: translateX(-50%) scale(1);
+}
+
+.pull-refresh-indicator .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--gray-300);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* =============================================
+   4. SWIPE GESTURES & ANIMATIONS
+   ============================================= */
+
+@media (max-width: 768px) {
+    /* Animaciones de página */
+    .page-transition-enter {
+        animation: slideInRight 0.3s ease-out;
+    }
+    
+    .page-transition-exit {
+        animation: slideOutLeft 0.3s ease-out;
+    }
+    
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOutLeft {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(-100%);
+            opacity: 0;
+        }
+    }
+    
+    /* Cards deslizables */
+    .swipeable-card {
+        transition: transform var(--transition-base);
+        touch-action: pan-y;
+    }
+    
+    .swipeable-card.swiping {
+        transition: none;
+    }
+}
+
+/* =============================================
+   5. FLOATING ACTION BUTTON (FAB)
+   ============================================= */
+
+@media (max-width: 768px) {
+    .fab {
+        position: fixed;
+        bottom: 80px; /* Encima de bottom nav */
+        right: 20px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: var(--white);
+        border: none;
+        box-shadow: var(--shadow-xl);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        cursor: pointer;
+        transition: all var(--transition-base);
+        z-index: calc(var(--z-fixed) - 1);
+    }
+    
+    .fab:hover {
+        transform: scale(1.1);
+        box-shadow: var(--shadow-2xl);
+    }
+    
+    .fab:active {
+        transform: scale(0.95);
+    }
+}
+
+/* =============================================
+   6. MODAL BOTTOM SHEET (Estilo Material Design)
+   ============================================= */
+
+@media (max-width: 768px) {
+    .modal-bottom-sheet {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--white);
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+        transform: translateY(100%);
+        transition: transform var(--transition-base);
+        z-index: var(--z-modal);
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .modal-bottom-sheet.show {
+        transform: translateY(0);
+    }
+    
+    .modal-bottom-sheet-handle {
+        width: 40px;
+        height: 4px;
+        background: var(--gray-300);
+        border-radius: var(--radius-full);
+        margin: 12px auto;
+    }
+    
+    .modal-bottom-sheet-content {
+        padding: 0 20px 24px;
+    }
+}
+
+/* =============================================
+   7. CARDS OPTIMIZADAS PARA MÓVIL
+   ============================================= */
+
+@media (max-width: 768px) {
+    .card {
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        margin-bottom: 16px;
+        overflow: hidden;
+    }
+    
+    .card-img-top {
+        aspect-ratio: 16/9;
+        object-fit: cover;
+    }
+    
+    .card-body {
+        padding: 16px;
+    }
+    
+    /* Card horizontal en móvil */
+    .card-horizontal-mobile {
+        display: flex;
+        flex-direction: row;
+    }
+    
+    .card-horizontal-mobile .card-img-top {
+        width: 120px;
+        aspect-ratio: 1;
+        border-radius: var(--radius-md) 0 0 var(--radius-md);
+    }
+    
+    .card-horizontal-mobile .card-body {
+        flex: 1;
+    }
+}
+
+/* =============================================
+   8. INFINITE SCROLL LOADING
+   ============================================= */
+
+.loading-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--gray-200);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/* =============================================
+   9. GESTOS TÁCTILES MEJORADOS
+   ============================================= */
+
+@media (max-width: 768px) {
+    /* Highlight al tocar */
+    * {
+        -webkit-tap-highlight-color: rgba(0, 131, 143, 0.1);
+    }
+    
+    /* Mejorar scroll en iOS */
+    body {
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Prevenir zoom en inputs en iOS */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="tel"],
+    input[type="number"],
+    select,
+    textarea {
+        font-size: 16px;
+    }
+}
+
+/* =============================================
+   10. SAFE AREA (Notch Support)
+   ============================================= */
+
+@supports (padding: env(safe-area-inset-top)) {
+    .navbar {
+        padding-top: env(safe-area-inset-top);
+    }
+    
+    .mobile-bottom-nav {
+        padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    }
+}
+
+/* =============================================
+   11. SKELETON LOADING
+   ============================================= */
+
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--gray-200) 0%,
+        var(--gray-100) 50%,
+        var(--gray-200) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+    border-radius: var(--radius-md);
+}
+
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.skeleton-text {
+    height: 16px;
+    margin-bottom: 8px;
+}
+
+.skeleton-title {
+    height: 24px;
+    margin-bottom: 12px;
+    width: 60%;
+}
+
+.skeleton-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+}
+
+.skeleton-image {
+    width: 100%;
+    height: 200px;
+}
+
+/* =============================================
+   12. RIPPLE EFFECT (Material Design)
+   ============================================= */
+
+.ripple {
+    position: relative;
+    overflow: hidden;
+}
+
+.ripple::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.ripple:active::after {
+    width: 300px;
+    height: 300px;
+}
+
+/* =============================================
+   13. EMPTY STATES
+   ============================================= */
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-state-icon {
+    font-size: 64px;
+    color: var(--gray-400);
+    margin-bottom: 20px;
+}
+
+.empty-state-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 12px;
+}
+
+.empty-state-description {
+    font-size: 14px;
+    color: var(--gray-500);
+    margin-bottom: 24px;
+}
+
+/* =============================================
+   14. TOAST NOTIFICATIONS (Mobile)
+   ============================================= */
+
+@media (max-width: 768px) {
+    .toast-container {
+        position: fixed;
+        top: 70px;
+        left: 16px;
+        right: 16px;
+        z-index: var(--z-tooltip);
+    }
+    
+    .toast {
+        background: var(--dark);
+        color: var(--white);
+        padding: 16px;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-xl);
+        margin-bottom: 12px;
+        animation: slideDown 0.3s ease-out;
+    }
+    
+    @keyframes slideDown {
+        from {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+}
+
+/* =============================================
+   15. STICKY HEADERS
+   ============================================= */
+
+@media (max-width: 768px) {
+    .sticky-header {
+        position: sticky;
+        top: 60px; /* Altura de navbar */
+        background: var(--white);
+        z-index: calc(var(--z-fixed) - 1);
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--gray-200);
+        box-shadow: var(--shadow-sm);
+    }
+}
+
+/* =============================================
+   16. PERFORMANCE OPTIMIZATIONS
+   ============================================= */
+
+/* Usar will-change para animaciones suaves */
+.mobile-bottom-nav,
+.fab,
+.modal-bottom-sheet {
+    will-change: transform;
+}
+
+/* Optimizar renderizado de imágenes */
+img {
+    image-rendering: -webkit-optimize-contrast;
+}
+
+/* =============================================
+   17. ACCESIBILIDAD (WCAG 2.1)
+   ============================================= */
+
+/* Focus visible para teclado */
+*:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* Ocultar outline en mouse/touch */
+*:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* Tamaños de fuente accesibles */
+@media (max-width: 768px) {
+    body {
+        font-size: 16px;
+        line-height: 1.5;
+    }
+    
+    h1 { font-size: 28px; }
+    h2 { font-size: 24px; }
+    h3 { font-size: 20px; }
+    h4 { font-size: 18px; }
+    h5 { font-size: 16px; }
+    h6 { font-size: 14px; }
+}

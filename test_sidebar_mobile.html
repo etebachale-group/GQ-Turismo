@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Sidebar Mobile</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding-top: 60px;
+        }
+        
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .sidebar {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            bottom: 0;
+            width: 280px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 9999;
+            overflow-y: auto;
+        }
+        
+        .sidebar.show {
+            transform: translateX(0);
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+            padding: 20px;
+        }
+        
+        .sidebar-menu li {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        
+        .sidebar-menu li:hover {
+            background: #f0f0f0;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            z-index: 9998;
+        }
+        
+        .overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .toggle-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 10000;
+            transition: transform 0.2s ease;
+        }
+        
+        .toggle-btn:active {
+            transform: scale(0.9);
+        }
+        
+        .content {
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .status {
+            position: fixed;
+            top: 70px;
+            right: 10px;
+            background: #4caf50;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 10001;
+        }
+        
+        .log {
+            background: #333;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 11px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+            border-bottom: 1px solid #444;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>Test Sidebar Mobile</h1>
+    </div>
+    
+    <div class="status" id="status">Ready</div>
+    
+    <aside class="sidebar" id="sidebar">
+        <ul class="sidebar-menu">
+            <li><i class="bi bi-house"></i> Dashboard</li>
+            <li><i class="bi bi-people"></i> Usuarios</li>
+            <li><i class="bi bi-geo-alt"></i> Destinos</li>
+            <li><i class="bi bi-building"></i> Agencias</li>
+            <li><i class="bi bi-person-badge"></i> Guías</li>
+            <li><i class="bi bi-shop"></i> Locales</li>
+            <li><i class="bi bi-chat"></i> Mensajes</li>
+            <li><i class="bi bi-calendar"></i> Reservas</li>
+        </ul>
+    </aside>
+    
+    <div class="overlay" id="overlay"></div>
+    
+    <button class="toggle-btn" id="toggleBtn">
+        <i class="bi bi-list"></i>
+    </button>
+    
+    <div class="content">
+        <div class="card">
+            <h2>Prueba de Sidebar Móvil</h2>
+            <p><strong>Instrucciones:</strong></p>
+            <ol>
+                <li>Abre esta página en tu teléfono</li>
+                <li>Toca el botón morado flotante (abajo izquierda)</li>
+                <li>El sidebar debe deslizarse desde la izquierda</li>
+                <li>Toca fuera del sidebar para cerrarlo</li>
+            </ol>
+        </div>
+        
+        <div class="card">
+            <h3>Información del Dispositivo</h3>
+            <p><strong>Ancho:</strong> <span id="width">-</span>px</p>
+            <p><strong>Alto:</strong> <span id="height">-</span>px</p>
+            <p><strong>User Agent:</strong> <span id="ua" style="font-size: 10px; word-break: break-all;">-</span></p>
+            <p><strong>Touch:</strong> <span id="touch">-</span></p>
+        </div>
+        
+        <div class="card">
+            <h3>Log de Eventos</h3>
+            <div class="log" id="log"></div>
+            <button onclick="clearLog()" style="margin-top: 10px; padding: 5px 10px;">Limpiar Log</button>
+        </div>
+    </div>
+
+    <script>
+        // Referencias
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const toggleBtn = document.getElementById('toggleBtn');
+        const status = document.getElementById('status');
+        const logDiv = document.getElementById('log');
+        
+        let logCount = 0;
+        
+        function addLog(message, type = 'info') {
+            logCount++;
+            const time = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#f00' : type === 'success' ? '#0f0' : '#0ff';
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span style="color: ${color}">[${logCount}] ${time}</span> - ${message}`;
+            logDiv.insertBefore(entry, logDiv.firstChild);
+            
+            // Limitar a 50 entradas
+            if (logDiv.children.length > 50) {
+                logDiv.removeChild(logDiv.lastChild);
+            }
+        }
+        
+        function clearLog() {
+            logDiv.innerHTML = '';
+            logCount = 0;
+            addLog('Log limpiado', 'info');
+        }
+        
+        function updateStatus(msg, isOpen) {
+            status.textContent = msg;
+            status.style.background = isOpen ? '#f44336' : '#4caf50';
+        }
+        
+        function updateDeviceInfo() {
+            document.getElementById('width').textContent = window.innerWidth;
+            document.getElementById('height').textContent = window.innerHeight;
+            document.getElementById('ua').textContent = navigator.userAgent;
+            document.getElementById('touch').textContent = 'ontouchstart' in window ? 'Sí' : 'No';
+        }
+        
+        // Toggle sidebar
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('show');
+            
+            addLog(`Toggle clicked - Estado actual: ${isOpen ? 'ABIERTO' : 'CERRADO'}`, 'info');
+            
+            sidebar.classList.toggle('show');
+            overlay.classList.toggle('show');
+            
+            const newState = sidebar.classList.contains('show');
+            updateStatus(newState ? 'Sidebar ABIERTO' : 'Sidebar CERRADO', newState);
+            
+            addLog(`Sidebar ${newState ? 'ABIERTO' : 'CERRADO'}`, 'success');
+            addLog(`Classes: ${sidebar.className}`, 'info');
+        }
+        
+        // Event listeners
+        toggleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            addLog('Click en botón toggle', 'info');
+            toggleSidebar();
+        });
+        
+        toggleBtn.addEventListener('touchstart', function(e) {
+            addLog('Touch en botón toggle', 'info');
+        });
+        
+        overlay.addEventListener('click', function() {
+            addLog('Click en overlay', 'info');
+            sidebar.classList.remove('show');
+            overlay.classList.remove('show');
+            updateStatus('Sidebar CERRADO', false);
+            addLog('Sidebar cerrado por overlay', 'success');
+        });
+        
+        // Cerrar con links
+        sidebar.querySelectorAll('li').forEach(item => {
+            item.addEventListener('click', function() {
+                addLog(`Click en item: ${this.textContent}`, 'info');
+                sidebar.classList.remove('show');
+                overlay.classList.remove('show');
+                updateStatus('Sidebar CERRADO', false);
+            });
+        });
+        
+        // Update info
+        updateDeviceInfo();
+        window.addEventListener('resize', updateDeviceInfo);
+        
+        // Log inicial
+        addLog('Página cargada correctamente', 'success');
+        addLog(`Elementos encontrados - Sidebar: ${!!sidebar}, Overlay: ${!!overlay}, Toggle: ${!!toggleBtn}`, 'info');
+        addLog(`Ancho de pantalla: ${window.innerWidth}px`, 'info');
+        
+        // Verificar elementos cada segundo
+        setInterval(() => {
+            const hasShow = sidebar.classList.contains('show');
+            if (hasShow !== (status.textContent.includes('ABIERTO'))) {
+                addLog('Estado inconsistente detectado!', 'error');
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

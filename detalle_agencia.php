@@ -16,7 +16,7 @@ $servicios = [];
 $menus = [];
 
 if ($conn) {
-    $stmt = $conn->prepare("SELECT id, nombre_agencia, descripcion, contacto_email, contacto_telefono FROM agencias WHERE id = ?");
+    $stmt = $conn->prepare("SELECT id, nombre_agencia, descripcion, contacto_email, contacto_telefono, imagen_perfil FROM agencias WHERE id = ?");
     $stmt->bind_param("i", $id_agencia);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -76,8 +76,23 @@ if ($agencia) {
     <?php if ($agencia): ?>
         <div class="row g-5">
             <div class="col-lg-8">
+                <?php if (!empty($agencia['imagen_perfil'])): ?>
+                    <img src="assets/img/agencias/<?= htmlspecialchars($agencia['imagen_perfil']) ?>" class="img-fluid rounded shadow-sm mb-4" alt="Perfil de <?= htmlspecialchars($agencia['nombre_agencia']) ?>" style="max-height: 300px; object-fit: cover;">
+                <?php else: ?>
+                    <img src="assets/img/agencias/default.jpg" class="img-fluid rounded shadow-sm mb-4" alt="Perfil de <?= htmlspecialchars($agencia['nombre_agencia']) ?>" style="max-height: 300px; object-fit: cover;">
+                <?php endif; ?>
                 <h1 class="display-4 fw-bold mb-3"><?= htmlspecialchars($agencia['nombre_agencia']) ?></h1>
                 <p class="lead text-muted"><?= nl2br(htmlspecialchars($agencia['descripcion'])) ?></p>
+                
+                <?php if (isset($_SESSION['user_id']) && $_SESSION['user_type'] === 'turista'): ?>
+                    <button class="btn btn-primary btn-lg mb-3" data-bs-toggle="modal" data-bs-target="#sendMessageModal"
+                            data-receiver-id="<?= htmlspecialchars($agencia['id']) ?>"
+                            data-receiver-type="agencia"
+                            data-receiver-name="<?= htmlspecialchars($agencia['nombre_agencia']) ?>">
+                        <i class="bi bi-chat-dots-fill me-2"></i>Enviar Mensaje
+                    </button>
+                <?php endif; ?>
+                
                 <hr>
                 <p><i class="bi bi-envelope me-2"></i>Email: <?= htmlspecialchars($agencia['contacto_email']) ?></p>
                 <p><i class="bi bi-phone me-2"></i>Teléfono: <?= htmlspecialchars($agencia['contacto_telefono'] ?? 'N/A') ?></p>
@@ -434,7 +449,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 message: messageContent.value
             };
 
-            fetch('api/messages.php', {
+            fetch('api/start_conversation.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -446,10 +461,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     sendMessageResponse.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
                     sendMessageForm.reset();
-                    // Optionally close modal after a short delay
+                    // Redirect to messages page after a short delay
                     setTimeout(() => {
-                        const modal = bootstrap.Modal.getInstance(sendMessageModal);
-                        modal.hide();
+                        window.location.href = data.redirect || 'mis_mensajes.php';
                     }, 2000);
                 } else {
                     sendMessageResponse.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;

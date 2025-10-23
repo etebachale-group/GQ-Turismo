@@ -28,6 +28,7 @@ function fetchLocales() {
 
                     col.innerHTML = `
                         <div class="card h-100 shadow-sm">
+                            <img src="${local.imagen_perfil_url}" class="card-img-top" alt="Perfil de ${local.nombre_local}" style="height: 200px; object-fit: cover;">
                             <div class="card-body d-flex flex-column">
                                 <h5 class="card-title">${local.nombre_local}</h5>
                                 <p class="card-text text-muted">${local.descripcion ? local.descripcion.substring(0, 100) + '...' : 'No hay descripción disponible.'}</p>

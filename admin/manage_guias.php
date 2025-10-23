@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Verificar si el usuario ha iniciado sesión y tiene el tipo de usuario correcto
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_type'], ['guia', 'super_admin'])) {
@@ -14,17 +16,123 @@ $edit_guia = null;
 $user_id = $_SESSION['user_id'];
 $user_type = $_SESSION['user_type'];
 $guia_id = null;
+$guia_city = null; // Inicializar $guia_city
 
 // Obtener el ID del guía del usuario actual si es un guía
 if ($user_type === 'guia') {
-    $stmt = $conn->prepare("SELECT id FROM guias_turisticos WHERE id_usuario = ?");
+    $stmt = $conn->prepare("SELECT id, ciudad_operacion FROM guias_turisticos WHERE id_usuario = ?");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $result = $stmt->get_result();
     if ($result->num_rows > 0) {
-        $guia_id = $result->fetch_assoc()['id'];
+        $guia_data = $result->fetch_assoc();
+        $guia_id = $guia_data['id'];
+        $guia_city = $guia_data['ciudad_operacion'];
     }
     $stmt->close();
+}
+
+// Lógica para actualizar estado de pedido
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST['form_type'] == 'update_order_status') {
+    $order_id = $_POST['order_id'] ?? null;
+    $new_status = $_POST['new_status'] ?? '';
+    
+    if ($order_id && $new_status) {
+        if ($user_type === 'guia' && $guia_id) {
+            $stmt_update = $conn->prepare("UPDATE pedidos_servicios SET estado = ? WHERE id = ? AND tipo_proveedor = 'guia' AND id_proveedor = ?");
+            $stmt_update->bind_param("sii", $new_status, $order_id, $guia_id);
+            if ($stmt_update->execute()) {
+                $message = "<div class='alert alert-success'>Estado del pedido actualizado con éxito.</div>";
+            } else {
+                $message = "<div class='alert alert-danger'>Error al actualizar el estado del pedido: " . $stmt_update->error . "</div>";
+            }
+            $stmt_update->close();
+        }
+    } else {
+        $message = "<div class='alert alert-danger'>Datos incompletos para actualizar el estado.</div>";
+    }
+}
+
+// Lógica para añadir/eliminar destinos ofrecidos por el guía
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST['form_type'] == 'manage_guia_destinos') {
+    $action = $_POST['action'] ?? '';
+    $destino_id = $_POST['destino_id'] ?? null;
+
+    if ($guia_id && $destino_id) {
+        if ($action === 'add') {
+            // Verificar si el destino ya está ofrecido
+            $stmt_check = $conn->prepare("SELECT id FROM guias_destinos WHERE id_guia = ? AND id_destino = ?");
+            $stmt_check->bind_param("ii", $guia_id, $destino_id);
+            $stmt_check->execute();
+            $stmt_check->store_result();
+            if ($stmt_check->num_rows > 0) {
+                $message = "<div class='alert alert-warning'>Este destino ya está ofrecido por ti.</div>";
+            } else {
+                // Verificar que el destino pertenece a la ciudad del guía
+                $stmt_check_city = $conn->prepare("SELECT id FROM destinos WHERE id = ? AND ciudad = ?");
+                $stmt_check_city->bind_param("is", $destino_id, $guia_city);
+                $stmt_check_city->execute();
+                $stmt_check_city->store_result();
+                if ($stmt_check_city->num_rows > 0) {
+                    $stmt_add = $conn->prepare("INSERT INTO guias_destinos (id_guia, id_destino) VALUES (?, ?)");
+                    $stmt_add->bind_param("ii", $guia_id, $destino_id);
+                    if ($stmt_add->execute()) {
+                        $message = "<div class='alert alert-success'>Destino añadido con éxito.</div>";
+                    } else {
+                        $message = "<div class='alert alert-danger'>Error al añadir destino: " . $stmt_add->error . "</div>";
+                    }
+                    $stmt_add->close();
+                } else {
+                    $message = "<div class='alert alert-danger'>Este destino no pertenece a tu ciudad de operación.</div>";
+                }
+                $stmt_check_city->close();
+            }
+            $stmt_check->close();
+        } elseif ($action === 'remove') {
+            $stmt_remove = $conn->prepare("DELETE FROM guias_destinos WHERE id_guia = ? AND id_destino = ?");
+            $stmt_remove->bind_param("ii", $guia_id, $destino_id);
+            if ($stmt_remove->execute()) {
+                $message = "<div class='alert alert-success'>Destino eliminado con éxito.</div>";
+            } else {
+                $message = "<div class='alert alert-danger'>Error al eliminar destino: " . $stmt_remove->error . "</div>";
+            }
+            $stmt_remove->close();
+        }
+    } else {
+        $message = "<div class='alert alert-danger'>Datos incompletos para gestionar destinos.</div>";
+    }
+}
+
+// Obtener destinos disponibles en la ciudad del guía
+$available_destinos = [];
+if ($guia_city) {
+    $stmt_available_destinos = $conn->prepare("SELECT id, nombre FROM destinos WHERE ciudad = ? ORDER BY nombre ASC");
+    $stmt_available_destinos->bind_param("s", $guia_city);
+    $stmt_available_destinos->execute();
+    $result_available_destinos = $stmt_available_destinos->get_result();
+    while ($row = $result_available_destinos->fetch_assoc()) {
+        $available_destinos[] = $row;
+    }
+    $stmt_available_destinos->close();
+}
+
+// Obtener destinos que el guía ya ofrece
+$guia_destinos_ofrecidos = [];
+if ($guia_id) {
+    $stmt_guia_destinos = $conn->prepare("
+        SELECT gd.id_destino, d.nombre, d.ciudad
+        FROM guias_destinos gd
+        JOIN destinos d ON gd.id_destino = d.id
+        WHERE gd.id_guia = ?
+        ORDER BY d.nombre ASC
+    ");
+    $stmt_guia_destinos->bind_param("i", $guia_id);
+    $stmt_guia_destinos->execute();
+    $result_guia_destinos = $stmt_guia_destinos->get_result();
+    while ($row = $result_guia_destinos->fetch_assoc()) {
+        $guia_destinos_ofrecidos[] = $row;
+    }
+    $stmt_guia_destinos->close();
 }
 
 // Lógica para añadir/editar información de guía
@@ -35,20 +143,65 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
     $precio_hora = $_POST['precio_hora'] ?? 0.00;
     $contacto_email = $_POST['contacto_email'] ?? '';
     $contacto_telefono = $_POST['contacto_telefono'] ?? '';
+    $ciudad_operacion = $_POST['ciudad_operacion'] ?? '';
     $posted_guia_id = $_POST['guia_id'] ?? null;
 
-    if (empty($nombre_guia) || empty($contacto_email) || empty($precio_hora)) {
-        $message = "<div class='alert alert-danger'>El nombre del guía, el email de contacto y el precio por hora son obligatorios.</div>";
+    if (empty($nombre_guia) || empty($contacto_email) || empty($precio_hora) || empty($ciudad_operacion)) {
+        $message = "<div class='alert alert-danger'>El nombre del guía, el email de contacto, el precio por hora y la ciudad de operación son obligatorios.</div>";
     } else {
         if ($posted_guia_id) {
             // Editar guía existente
             if ($user_type === 'super_admin' || ($user_type === 'guia' && $posted_guia_id == $guia_id)) {
-                $stmt = $conn->prepare("UPDATE guias_turisticos SET nombre_guia = ?, descripcion = ?, especialidades = ?, precio_hora = ?, contacto_email = ?, contacto_telefono = ? WHERE id = ?");
-                $stmt->bind_param("sssdssi", $nombre_guia, $descripcion, $especialidades, $precio_hora, $contacto_email, $contacto_telefono, $posted_guia_id);
+                $profile_image_name = '';
+                error_log("DEBUG: POST request received for guia_info form.");
+                error_log("DEBUG: FILES array: " . print_r($_FILES, true));
+
+                if (isset($_FILES['imagen_perfil']) && $_FILES['imagen_perfil']['error'] == UPLOAD_ERR_OK) {
+                    error_log("DEBUG: imagen_perfil file detected.");
+                    $target_dir = "../assets/img/guias/";
+                    if (!is_dir($target_dir)) {
+                        error_log("DEBUG: Target directory does not exist. Attempting to create: " . $target_dir);
+                        if (!mkdir($target_dir, 0777, true)) {
+                            error_log("ERROR: Failed to create directory: " . $target_dir);
+                            $message = "<div class='alert alert-danger'>Error: No se pudo crear el directorio de imágenes.</div>";
+                            // Exit or handle error appropriately
+                        }
+                    }
+                    $profile_image_name = uniqid() . "_" . basename($_FILES['imagen_perfil']['name']);
+                    $target_file = $target_dir . $profile_image_name;
+                    error_log("DEBUG: Attempting to move uploaded file to: " . $target_file);
+                    if (!move_uploaded_file($_FILES['imagen_perfil']['tmp_name'], $target_file)) {
+                        $message = "<div class='alert alert-danger'>Error al subir la imagen de perfil.</div>";
+                        $profile_image_name = ''; // Reset if upload fails
+                        error_log("ERROR: Failed to move uploaded file. Check permissions for " . $target_dir);
+                    } else {
+                        error_log("DEBUG: File moved successfully: " . $profile_image_name);
+                    }
+                } else if (isset($_FILES['imagen_perfil']) && $_FILES['imagen_perfil']['error'] != UPLOAD_ERR_NO_FILE) {
+                    error_log("ERROR: File upload error for imagen_perfil: " . $_FILES['imagen_perfil']['error']);
+                    $message = "<div class='alert alert-danger'>Error en la subida del archivo: Código " . $_FILES['imagen_perfil']['error'] . "</div>";
+                }
+
+                $sql = "UPDATE guias_turisticos SET nombre_guia = ?, descripcion = ?, especialidades = ?, precio_hora = ?, contacto_email = ?, contacto_telefono = ?, ciudad_operacion = ?" . (!empty($profile_image_name) ? ", imagen_perfil = ?" : "") . " WHERE id = ?";
+                error_log("DEBUG: SQL query: " . $sql);
+                error_log("DEBUG: profile_image_name: " . $profile_image_name);
+                
+                if (!empty($profile_image_name)) {
+                    $stmt = $conn->prepare($sql);
+                    $stmt->bind_param("sssdssssi", $nombre_guia, $descripcion, $especialidades, $precio_hora, $contacto_email, $contacto_telefono, $ciudad_operacion, $profile_image_name, $posted_guia_id);
+                    error_log("DEBUG: bind_param types: sssdssssi, params: " . $nombre_guia . ", " . $descripcion . ", " . $especialidades . ", " . $precio_hora . ", " . $contacto_email . ", " . $contacto_telefono . ", " . $ciudad_operacion . ", " . $profile_image_name . ", " . $posted_guia_id);
+                } else {
+                    $stmt = $conn->prepare($sql);
+                    $stmt->bind_param("sssdsssi", $nombre_guia, $descripcion, $especialidades, $precio_hora, $contacto_email, $contacto_telefono, $ciudad_operacion, $posted_guia_id);
+                    error_log("DEBUG: bind_param types: sssdsssi, params: " . $nombre_guia . ", " . $descripcion . ", " . $especialidades . ", " . $precio_hora . ", " . $contacto_email . ", " . $contacto_telefono . ", " . $ciudad_operacion . ", " . $posted_guia_id);
+                }
+
                 if ($stmt->execute()) {
                     $message = "<div class='alert alert-success'>Información del guía actualizada con éxito.</div>";
+                    error_log("DEBUG: Guia updated successfully.");
                 } else {
                     $message = "<div class='alert alert-danger'>Error al actualizar el guía: " . $stmt->error . "</div>";
+                    error_log("ERROR: Failed to update guia: " . $stmt->error);
                 }
                 $stmt->close();
             } else {
@@ -64,8 +217,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
                 if ($check_stmt->num_rows > 0) {
                     $message = "<div class='alert alert-warning'>Ya tienes un perfil de guía registrado. Edita el existente.</div>";
                 } else {
-                    $stmt = $conn->prepare("INSERT INTO guias_turisticos (id_usuario, nombre_guia, descripcion, especialidades, precio_hora, contacto_email, contacto_telefono) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->bind_param("isssdss", $user_id, $nombre_guia, $descripcion, $especialidades, $precio_hora, $contacto_email, $contacto_telefono);
+                    $stmt = $conn->prepare("INSERT INTO guias_turisticos (id_usuario, nombre_guia, descripcion, especialidades, precio_hora, contacto_email, contacto_telefono, ciudad_operacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->bind_param("isssdsss", $user_id, $nombre_guia, $descripcion, $especialidades, $precio_hora, $contacto_email, $contacto_telefono, $ciudad_operacion);
                     if ($stmt->execute()) {
                         $message = "<div class='alert alert-success'>Perfil de guía registrado con éxito.</div>";
                         $guia_id = $stmt->insert_id; // Actualizar guia_id para la sesión actual
@@ -260,6 +413,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete_service' && isset($_GET
 $guias = [];
 $guia_images = [];
 $guia_services = [];
+$guia_orders = [];
 
 if ($user_type === 'super_admin') {
     $query = "SELECT g.id, g.nombre_guia, g.descripcion, g.especialidades, g.precio_hora, g.contacto_email, g.contacto_telefono, u.nombre as usuario_nombre FROM guias_turisticos g JOIN usuarios u ON g.id_usuario = u.id ORDER BY g.nombre_guia ASC";
@@ -270,7 +424,7 @@ if ($user_type === 'super_admin') {
         }
     }
 } else if ($user_type === 'guia') {
-    $query = "SELECT id, nombre_guia, descripcion, especialidades, precio_hora, contacto_email, contacto_telefono FROM guias_turisticos WHERE id_usuario = ?";
+    $query = "SELECT id, nombre_guia, descripcion, especialidades, precio_hora, contacto_email, contacto_telefono, ciudad_operacion, imagen_perfil FROM guias_turisticos WHERE id_usuario = ?";
     $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
@@ -278,6 +432,7 @@ if ($user_type === 'super_admin') {
     if ($result && $result->num_rows > 0) {
         $edit_guia = $result->fetch_assoc(); // El guía solo puede editar su propia información
         $guia_id = $edit_guia['id']; // Asegurarse de que guia_id esté disponible
+        $guia_city = $edit_guia['ciudad_operacion']; // Actualizar guia_city
 
         // Obtener imágenes del guía
         $stmt_images = $conn->prepare("SELECT id, ruta_imagen, descripcion FROM imagenes_guia WHERE id_guia = ? ORDER BY fecha_subida DESC");
@@ -299,6 +454,32 @@ if ($user_type === 'super_admin') {
         }
         $stmt_services->close();
 
+        // Obtener pedidos del guía
+        $stmt_orders = $conn->prepare("
+            SELECT ps.id, 
+                   sg.nombre_servicio AS item_name,
+                   ps.tipo_item, 
+                   u.nombre as turista_nombre, 
+                   ps.fecha_servicio, 
+                   ps.cantidad_personas, 
+                   ps.precio_total, 
+                   ps.estado,
+                   ps.id_itinerario,
+                   ps.fecha_solicitud
+            FROM pedidos_servicios ps
+            JOIN usuarios u ON ps.id_turista = u.id
+            LEFT JOIN servicios_guia sg ON ps.id_servicio_o_menu = sg.id AND ps.tipo_item = 'servicio'
+            WHERE ps.tipo_proveedor = 'guia' AND ps.id_proveedor = ?
+            ORDER BY ps.fecha_solicitud DESC
+        ");
+        $stmt_orders->bind_param("i", $guia_id);
+        $stmt_orders->execute();
+        $result_orders = $stmt_orders->get_result();
+        while ($row = $result_orders->fetch_assoc()) {
+            $guia_orders[] = $row;
+        }
+        $stmt_orders->close();
+
         // Obtener datos de ingresos y estadísticas para el guía
         $total_income_guia = 0;
         $completed_orders_count_guia = 0;
@@ -315,7 +496,14 @@ if ($user_type === 'super_admin') {
             $stmt_income_summary->close();
 
             // Ingresos por servicio
-            $stmt_income_service = $conn->prepare("SELECT ps.item_name, SUM(ps.precio_total) as total_item_income FROM pedidos_servicios ps WHERE ps.tipo_proveedor = 'guia' AND ps.id_proveedor = ? AND ps.tipo_item = 'servicio' AND ps.estado = 'completado' GROUP BY ps.item_name ORDER BY total_item_income DESC");
+            $stmt_income_service = $conn->prepare("
+                SELECT sg.nombre_servicio AS item_name, SUM(ps.precio_total) as total_item_income 
+                FROM pedidos_servicios ps 
+                JOIN servicios_guia sg ON ps.id_servicio_o_menu = sg.id
+                WHERE ps.tipo_proveedor = 'guia' AND ps.id_proveedor = ? AND ps.tipo_item = 'servicio' AND ps.estado = 'completado' 
+                GROUP BY sg.nombre_servicio 
+                ORDER BY total_item_income DESC
+            ");
             $stmt_income_service->bind_param("i", $guia_id);
             $stmt_income_service->execute();
             $result_income_service = $stmt_income_service->get_result();
@@ -329,69 +517,17 @@ if ($user_type === 'super_admin') {
 }
 
 $conn->close();
+
+$page_title = "Gestionar Guías Turísticos";
+include 'admin_header.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestionar Guías Turísticos - Admin</title>
-    <link href="../assets/css/bootstrap.min.css" rel="stylesheet">
-    <link href="../assets/css/style.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-                <div class="position-sticky pt-3">
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link" href="dashboard.php">Dashboard</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="manage_destinos.php">Destinos</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="reservas.php">Reservas</a>
-                        </li>
-                        <?php if ($user_type === 'super_admin'): ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="manage_users.php">Usuarios</a>
-                        </li>
-                        <?php endif; ?>
-                        <?php if (in_array($user_type, ['agencia', 'super_admin'])): ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="manage_agencias.php">Agencias</a>
-                        </li>
-                        <?php endif; ?>
-                        <?php if (in_array($user_type, ['guia', 'super_admin'])): ?>
-                        <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="manage_guias.php">Guías</a>
-                        </li>
-                        <?php endif; ?>
-                        <?php if (in_array($user_type, ['local', 'super_admin'])): ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="manage_locales.php">
-                                Locales
-                            </a>
-                        </li>
-                        <?php endif; ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="logout.php">Cerrar Sesión</a>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
+<div class="admin-page-header">
+    <h1>Gestionar Guías Turísticos</h1>
+    <p>Administra perfiles de guías, servicios, imágenes y pedidos</p>
+</div>
 
-            <!-- Main content -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2">Gestionar Guías Turísticos</h1>
-                </div>
-
-                <?php if ($message): ?>
+<?php if ($message): ?>
                     <?= $message ?>
                 <?php endif; ?>
 
@@ -411,6 +547,10 @@ $conn->close();
                             <div class="mb-3">
                                 <label for="especialidades" class="form-label">Especialidades (separadas por coma)</label>
                                 <input type="text" class="form-control" id="especialidades" name="especialidades">
+                            </div>
+                            <div class="mb-3">
+                                <label for="ciudad_operacion" class="form-label">Ciudad de Operación</label>
+                                <input type="text" class="form-control" id="ciudad_operacion" name="ciudad_operacion" placeholder="Ej: Malabo" required>
                             </div>
                             <div class="mb-3">
                                 <label for="precio_hora" class="form-label">Precio por Hora (€)</label>
@@ -444,6 +584,10 @@ $conn->close();
                                 <input type="text" class="form-control" id="especialidades" name="especialidades" value="<?= htmlspecialchars($edit_guia['especialidades']) ?>">
                             </div>
                             <div class="mb-3">
+                                <label for="ciudad_operacion" class="form-label">Ciudad de Operación</label>
+                                <input type="text" class="form-control" id="ciudad_operacion" name="ciudad_operacion" value="<?= htmlspecialchars($edit_guia['ciudad_operacion'] ?? '') ?>" placeholder="Ej: Malabo" required>
+                            </div>
+                            <div class="mb-3">
                                 <label for="precio_hora" class="form-label">Precio por Hora (€)</label>
                                 <input type="number" step="0.01" class="form-control" id="precio_hora" name="precio_hora" value="<?= htmlspecialchars($edit_guia['precio_hora']) ?>" required>
                             </div>
@@ -455,7 +599,14 @@ $conn->close();
                                 <label for="contacto_telefono" class="form-label">Teléfono de Contacto</label>
                                 <input type="text" class="form-control" id="contacto_telefono" name="contacto_telefono" value="<?= htmlspecialchars($edit_guia['contacto_telefono']) ?>">
                             </div>
-                            <button type="submit" class="btn btn-primary">Actualizar Perfil de Guía</button>
+                            <div class="mb-3">
+                                <label for="imagen_perfil" class="form-label"><i class="bi bi-person-circle me-2"></i>Imagen de Perfil</label>
+                                <input type="file" class="form-control" id="imagen_perfil" name="imagen_perfil">
+                                <?php if ($edit_guia && isset($edit_guia['imagen_perfil']) && !empty($edit_guia['imagen_perfil'])): ?>
+                                    <small class="text-muted">Imagen actual: <a href="../assets/img/guias/<?= htmlspecialchars($edit_guia['imagen_perfil']) ?>" target="_blank"><?= htmlspecialchars($edit_guia['imagen_perfil']) ?></a></small>
+                                <?php endif; ?>
+                            </div>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i>Actualizar Perfil de Guía</button>
                         </form>
 
                         <h3 class="mt-5">Gestionar Imágenes</h3>
@@ -590,6 +741,66 @@ $conn->close();
                             <div class="alert alert-info">Registra tu perfil de guía para actualizar tu ubicación.</div>
                         <?php endif; ?>
 
+                        <h3 class="mt-5">Gestionar Destinos Ofrecidos</h3>
+                        <?php if ($guia_id && $guia_city): ?>
+                            <form action="manage_guias.php" method="POST" class="mb-4">
+                                <input type="hidden" name="form_type" value="manage_guia_destinos">
+                                <input type="hidden" name="action" value="add">
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-md-9">
+                                        <label for="destino_id" class="form-label">Seleccionar Destino de <?= htmlspecialchars($guia_city) ?></label>
+                                        <select class="form-select" id="destino_id" name="destino_id" required>
+                                            <option value="">-- Selecciona un destino --</option>
+                                            <?php foreach ($available_destinos as $destino): ?>
+                                                <option value="<?= htmlspecialchars($destino['id']) ?>"><?= htmlspecialchars($destino['nombre']) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button type="submit" class="btn btn-success w-100">Añadir Destino</button>
+                                    </div>
+                                </div>
+                            </form>
+
+                            <div class="table-responsive">
+                                <table class="table table-striped table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>ID Destino</th>
+                                            <th>Nombre</th>
+                                            <th>Ciudad</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php if (count($guia_destinos_ofrecidos) > 0): ?>
+                                            <?php foreach ($guia_destinos_ofrecidos as $destino): ?>
+                                                <tr>
+                                                    <td><?= htmlspecialchars($destino['id_destino']) ?></td>
+                                                    <td><?= htmlspecialchars($destino['nombre']) ?></td>
+                                                    <td><?= htmlspecialchars($destino['ciudad']) ?></td>
+                                                    <td>
+                                                        <form action="manage_guias.php" method="POST" style="display:inline;">
+                                                            <input type="hidden" name="form_type" value="manage_guia_destinos">
+                                                            <input type="hidden" name="action" value="remove">
+                                                            <input type="hidden" name="destino_id" value="<?= htmlspecialchars($destino['id_destino']) ?>">
+                                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres dejar de ofrecer este destino?');">Eliminar</button>
+                                                        </form>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <tr>
+                                                <td colspan="4">No ofreces ningún destino actualmente.</td>
+                                            </tr>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <div class="alert alert-info">Registra tu perfil de guía y especifica tu ciudad de operación para gestionar destinos.</div>
+                        <?php endif; ?>
+
                         <h3 class="mt-5">Ingresos y Estadísticas</h3>
                         <?php if ($guia_id): ?>
                             <div class="row mb-4">
@@ -692,8 +903,7 @@ $conn->close();
                         <?php endif; ?>
 
                     <?php endif; // Fin de la lógica para usuario tipo guia ?>
-
-                    <?php endif; // Fin de la lógica para usuario tipo guia ?>
+                <?php endif; ?>
 
                 <?php if ($user_type === 'super_admin'): ?>
                     <h2 class="mt-5">Listado de Guías Turísticos</h2>
@@ -817,5 +1027,5 @@ $conn->close();
             }
         });
     </script>
-</body>
-</html>
+
+<?php include 'admin_footer.php'; ?>

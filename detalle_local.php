@@ -17,7 +17,7 @@ $servicios = [];
 $menus = [];
 
 if ($conn) {
-    $stmt = $conn->prepare("SELECT id, nombre_local, descripcion, tipo_local, direccion, contacto_email, contacto_telefono FROM lugares_locales WHERE id = ?");
+    $stmt = $conn->prepare("SELECT id, nombre_local, descripcion, tipo_local, direccion, contacto_email, contacto_telefono, imagen_perfil FROM lugares_locales WHERE id = ?");
     $stmt->bind_param("i", $id_local);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -87,6 +87,11 @@ if ($local) {
     <?php if ($local): ?>
         <div class="row g-5">
             <div class="col-lg-8">
+                <?php if (!empty($local['imagen_perfil'])): ?>
+                    <img src="assets/img/locales/<?= htmlspecialchars($local['imagen_perfil']) ?>" class="img-fluid rounded shadow-sm mb-4" alt="Perfil de <?= htmlspecialchars($local['nombre_local']) ?>" style="max-height: 300px; object-fit: cover;">
+                <?php else: ?>
+                    <img src="assets/img/locales/default.jpg" class="img-fluid rounded shadow-sm mb-4" alt="Perfil de <?= htmlspecialchars($local['nombre_local']) ?>" style="max-height: 300px; object-fit: cover;">
+                <?php endif; ?>
                 <h1 class="display-4 fw-bold mb-3"><?= htmlspecialchars($local['nombre_local']) ?></h1>
                 <p class="lead text-muted"><?= nl2br(htmlspecialchars($local['descripcion'])) ?></p>
                 <hr>
@@ -199,6 +204,15 @@ if ($local) {
                         <?php endif; ?>
                     </div>
                 </div>
+                <?php if (isset($_SESSION['user_id']) && $_SESSION['user_type'] === 'turista'): ?>
+                    <div class="card shadow-sm mt-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Valorar Local</h5>
+                            <p class="card-text">¿Has visitado este local? ¡Deja tu valoración!</p>
+                            <button type="button" class="btn btn-warning w-100" data-bs-toggle="modal" data-bs-target="#submitReviewModal" data-provider-id="<?= htmlspecialchars($local['id']) ?>" data-provider-type="local" data-provider-name="<?= htmlspecialchars($local['nombre_local']) ?>">Dejar Valoración</button>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     <?php else: ?>
@@ -386,7 +400,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 message: messageContent.value
             };
 
-            fetch('api/messages.php', {
+            fetch('api/start_conversation.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -398,10 +412,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     sendMessageResponse.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
                     sendMessageForm.reset();
-                    // Optionally close modal after a short delay
+                    // Redirect to messages page after a short delay
                     setTimeout(() => {
-                        const modal = bootstrap.Modal.getInstance(sendMessageModal);
-                        modal.hide();
+                        window.location.href = data.redirect || 'mis_mensajes.php';
                     }, 2000);
                 } else {
                     sendMessageResponse.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
@@ -413,7 +426,103 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    // Lógica para el modal de enviar valoración
+    const submitReviewModal = document.getElementById('submitReviewModal');
+    const modalReviewProviderName = document.getElementById('modalReviewProviderName');
+    const reviewProviderId = document.getElementById('reviewProviderId');
+    const reviewProviderType = document.getElementById('reviewProviderType');
+    const reviewRating = document.getElementById('reviewRating');
+    const reviewComment = document.getElementById('reviewComment');
+    const submitReviewForm = document.getElementById('submitReviewForm');
+    const submitReviewResponse = document.getElementById('submitReviewResponse');
+
+    if (submitReviewModal) {
+        submitReviewModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            modalReviewProviderName.textContent = button.dataset.providerName;
+            reviewProviderId.value = button.dataset.providerId;
+            reviewProviderType.value = button.dataset.providerType;
+            reviewRating.value = ''; // Reset rating
+            reviewComment.value = ''; // Clear previous comment
+            submitReviewResponse.innerHTML = ''; // Clear previous response
+        });
+
+        submitReviewForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitReviewResponse.innerHTML = '<div class="alert alert-info">Enviando valoración...</div>';
+
+            const formData = {
+                provider_id: reviewProviderId.value,
+                provider_type: reviewProviderType.value,
+                rating: reviewRating.value,
+                comment: reviewComment.value
+            };
+
+            fetch('api/reviews.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    submitReviewResponse.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+                    submitReviewForm.reset();
+                    // Optionally close modal after a short delay and refresh page
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(submitReviewModal);
+                        modal.hide();
+                        location.reload(); // Reload to show new review
+                    }, 2000);
+                } else {
+                    submitReviewResponse.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                submitReviewResponse.innerHTML = '<div class="alert alert-danger">Hubo un error de conexión. Por favor, inténtalo de nuevo más tarde.</div>';
+            });
+        });
+    }
 });
 </script>
+
+<!-- Modal para Enviar Valoración -->
+<div class="modal fade" id="submitReviewModal" tabindex="-1" aria-labelledby="submitReviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="submitReviewModalLabel">Dejar Valoración para <span id="modalReviewProviderName"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="submitReviewForm">
+          <input type="hidden" id="reviewProviderId" name="provider_id">
+          <input type="hidden" id="reviewProviderType" name="provider_type">
+          <div class="mb-3">
+            <label for="reviewRating" class="form-label">Puntuación (1-5 estrellas)</label>
+            <select class="form-select" id="reviewRating" name="rating" required>
+              <option value="">Selecciona una puntuación</option>
+              <option value="5">5 Estrellas</option>
+              <option value="4">4 Estrellas</option>
+              <option value="3">3 Estrellas</option>
+              <option value="2">2 Estrellas</option>
+              <option value="1">1 Estrella</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="reviewComment" class="form-label">Comentario (Opcional)</label>
+            <textarea class="form-control" id="reviewComment" name="comment" rows="3"></textarea>
+          </div>
+          <div id="submitReviewResponse" class="mt-3"></div>
+          <button type="submit" class="btn btn-primary w-100">Enviar Valoración</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
 <?php require_once 'includes/footer.php'; ?>

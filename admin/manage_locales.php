@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Verificar si el usuario ha iniciado sesión y tiene el tipo de usuario correcto
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_type'], ['local', 'super_admin'])) {
@@ -27,6 +29,36 @@ if ($user_type === 'local') {
     $stmt->close();
 }
 
+// Lógica para actualizar estado de pedido
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST['form_type'] == 'update_order_status') {
+    $order_id = $_POST['order_id'] ?? null;
+    $new_status = $_POST['new_status'] ?? '';
+    
+    if ($order_id && $new_status) {
+        if ($user_type === 'local' && $local_id) {
+            $stmt_update = $conn->prepare("UPDATE pedidos_servicios SET estado = ? WHERE id = ? AND tipo_proveedor = 'local' AND id_proveedor = ?");
+            $stmt_update->bind_param("sii", $new_status, $order_id, $local_id);
+            if ($stmt_update->execute()) {
+                $message = "<div class='alert alert-success'>Estado del pedido actualizado con éxito.</div>";
+            } else {
+                $message = "<div class='alert alert-danger'>Error al actualizar el estado del pedido: " . $stmt_update->error . "</div>";
+            }
+            $stmt_update->close();
+        } else if ($user_type === 'super_admin') {
+            $stmt_update = $conn->prepare("UPDATE pedidos_servicios SET estado = ? WHERE id = ?");
+            $stmt_update->bind_param("si", $new_status, $order_id);
+            if ($stmt_update->execute()) {
+                $message = "<div class='alert alert-success'>Estado del pedido actualizado con éxito.</div>";
+            } else {
+                $message = "<div class='alert alert-danger'>Error al actualizar el estado del pedido: " . $stmt_update->error . "</div>";
+            }
+            $stmt_update->close();
+        }
+    } else {
+        $message = "<div class='alert alert-danger'>Datos incompletos para actualizar el estado.</div>";
+    }
+}
+
 // Lógica para añadir/editar información de local
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST['form_type'] == 'local_info') {
     $nombre_local = $_POST['nombre_local'] ?? '';
@@ -43,8 +75,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
         if ($posted_local_id) {
             // Editar local existente
             if ($user_type === 'super_admin' || ($user_type === 'local' && $posted_local_id == $local_id)) {
-                $stmt = $conn->prepare("UPDATE lugares_locales SET nombre_local = ?, descripcion = ?, tipo_local = ?, direccion = ?, contacto_email = ?, contacto_telefono = ? WHERE id = ?");
-                $stmt->bind_param("ssssssi", $nombre_local, $descripcion, $tipo_local, $direccion, $contacto_email, $contacto_telefono, $posted_local_id);
+                $profile_image_name = '';
+                if (isset($_FILES['imagen_perfil']) && $_FILES['imagen_perfil']['error'] == UPLOAD_ERR_OK) {
+                    $target_dir = "../assets/img/locales/";
+                    if (!is_dir($target_dir)) { mkdir($target_dir, 0777, true); }
+                    $profile_image_name = uniqid() . "_" . basename($_FILES['imagen_perfil']['name']);
+                    $target_file = $target_dir . $profile_image_name;
+                    if (!move_uploaded_file($_FILES['imagen_perfil']['tmp_name'], $target_file)) {
+                        $message = "<div class='alert alert-danger'>Error al subir la imagen de perfil.</div>";
+                        $profile_image_name = ''; // Reset if upload fails
+                    }
+                }
+
+                $sql = "UPDATE lugares_locales SET nombre_local = ?, descripcion = ?, tipo_local = ?, direccion = ?, contacto_email = ?, contacto_telefono = ?" . (!empty($profile_image_name) ? ", imagen_perfil = ?" : "") . " WHERE id = ?";
+                
+                if (!empty($profile_image_name)) {
+                    $stmt = $conn->prepare($sql);
+                    $stmt->bind_param("sssssssi", $nombre_local, $descripcion, $tipo_local, $direccion, $contacto_email, $contacto_telefono, $profile_image_name, $posted_local_id);
+                } else {
+                    $stmt = $conn->prepare($sql);
+                    $stmt->bind_param("ssssssi", $nombre_local, $descripcion, $tipo_local, $direccion, $contacto_email, $contacto_telefono, $posted_local_id);
+                }
+
                 if ($stmt->execute()) {
                     $message = "<div class='alert alert-success'>Información del local actualizada con éxito.</div>";
                 } else {
@@ -319,6 +371,7 @@ $locales = [];
 $local_images = [];
 $local_services = [];
 $local_menus = [];
+$local_orders = [];
 
 if ($user_type === 'super_admin') {
     $query = "SELECT l.id, l.nombre_local, l.descripcion, l.tipo_local, l.direccion, l.contacto_email, l.contacto_telefono, u.nombre as usuario_nombre FROM lugares_locales l JOIN usuarios u ON l.id_usuario = u.id ORDER BY l.nombre_local ASC";
@@ -329,7 +382,7 @@ if ($user_type === 'super_admin') {
         }
     }
 } else if ($user_type === 'local') {
-    $query = "SELECT id, nombre_local, descripcion, tipo_local, direccion, contacto_email, contacto_telefono FROM lugares_locales WHERE id_usuario = ?";
+    $query = "SELECT id, nombre_local, descripcion, tipo_local, direccion, contacto_email, contacto_telefono, imagen_perfil FROM lugares_locales WHERE id_usuario = ?";
     $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
@@ -367,74 +420,53 @@ if ($user_type === 'super_admin') {
             $local_menus[] = $row;
         }
         $stmt_menus->close();
+
+        // Obtener pedidos del local
+        $stmt_orders = $conn->prepare("
+            SELECT ps.id, 
+                   CASE 
+                       WHEN ps.tipo_item = 'servicio' THEN sl.nombre_servicio
+                       WHEN ps.tipo_item = 'menu' THEN ml.nombre_menu
+                   END AS item_name,
+                   ps.tipo_item, 
+                   u.nombre as turista_nombre, 
+                   ps.fecha_servicio, 
+                   ps.cantidad_personas, 
+                   ps.precio_total, 
+                   ps.estado,
+                   ps.fecha_solicitud
+            FROM pedidos_servicios ps
+            JOIN usuarios u ON ps.id_turista = u.id
+            LEFT JOIN servicios_local sl ON ps.id_servicio_o_menu = sl.id AND ps.tipo_item = 'servicio'
+            LEFT JOIN menus_local ml ON ps.id_servicio_o_menu = ml.id AND ps.tipo_item = 'menu'
+            WHERE ps.tipo_proveedor = 'local' AND ps.id_proveedor = ?
+            ORDER BY ps.fecha_solicitud DESC
+        ");
+        $stmt_orders->bind_param("i", $local_id);
+        $stmt_orders->execute();
+        $result_orders = $stmt_orders->get_result();
+        while ($row = $result_orders->fetch_assoc()) {
+            $local_orders[] = $row;
+        }
+        $stmt_orders->close();
     }
     $stmt->close();
 }
 
 $conn->close();
+
+$page_title = "Gestionar Lugares y Locales";
+include 'admin_header.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestionar Lugares y Locales - Admin</title>
-    <link href="../assets/css/bootstrap.min.css" rel="stylesheet">
-    <link href="../assets/css/style.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-                <div class="position-sticky pt-3">
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link" href="dashboard.php">Dashboard</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="manage_destinos.php">Destinos</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="reservas.php">Reservas</a>
-                        </li>
-                        <?php if ($user_type === 'super_admin'): ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="manage_users.php">Usuarios</a>
-                        </li>
-                        <?php endif; ?>
-                        <?php if (in_array($user_type, ['agencia', 'super_admin'])): ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="manage_agencias.php">Agencias</a>
-                        </li>
-                        <?php endif; ?>
-                        <?php if (in_array($user_type, ['guia', 'super_admin'])): ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="manage_guias.php">Guías</a>
-                        </li>
-                        <?php endif; ?>
-                        <?php if (in_array($user_type, ['local', 'super_admin'])): ?>
-                        <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="manage_locales.php">Locales</a>
-                        </li>
-                        <?php endif; ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="logout.php">Cerrar Sesión</a>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
+<div class="admin-page-header">
+    <h1>Gestionar Lugares y Locales</h1>
+    <p>Administra información de locales, servicios, menús y pedidos</p>
+</div>
 
-            <!-- Main content -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2">Gestionar Lugares y Locales</h1>
-                </div>
-
-                <?php if ($message): ?>
-                    <?= $message ?>
-                <?php endif; ?>
+<?php if ($message): ?>
+    <?= $message ?>
+<?php endif; ?>
 
                 <?php if ($user_type === 'local'): ?>
                     <?php if (!$edit_local): ?>
@@ -494,9 +526,16 @@ $conn->close();
                             </div>
                             <div class="mb-3">
                                 <label for="contacto_telefono" class="form-label">Teléfono de Contacto</label>
-                                <input type="text" class="form-control" id="contacto_telefono" name="contacto_telefono" value="<?= htmlspecialchars($edit_local['contacto_telefono']) ?>">
+                                <input type="text" class="form-control" id="contacto_telefono" name="contacto_telefono" value="<?= htmlspecialchars($edit_local['contacto_telefono'] ?? '') ?>">
                             </div>
-                            <button type="submit" class="btn btn-primary">Actualizar Local</button>
+                            <div class="mb-3">
+                                <label for="imagen_perfil" class="form-label"><i class="bi bi-shop me-2"></i>Imagen de Perfil</label>
+                                <input type="file" class="form-control" id="imagen_perfil" name="imagen_perfil">
+                                <?php if ($edit_local && isset($edit_local['imagen_perfil']) && !empty($edit_local['imagen_perfil'])): ?>
+                                    <small class="text-muted">Imagen actual: <a href="../assets/img/locales/<?= htmlspecialchars($edit_local['imagen_perfil']) ?>" target="_blank"><?= htmlspecialchars($edit_local['imagen_perfil']) ?></a></small>
+                                <?php endif; ?>
+                            </div>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i>Actualizar Local</button>
                         </form>
 
                         <h3 class="mt-5">Gestionar Imágenes</h3>
@@ -717,8 +756,6 @@ $conn->close();
                         <?php endif; ?>
 
                     <?php endif; // Fin de la lógica para usuario tipo local ?>
-
-                <?php if ($user_type === 'super_admin'): ?>
                     <h2 class="mt-5">Listado de Lugares y Locales</h2>
                     <div class="table-responsive">
                         <table class="table table-striped table-sm">
@@ -759,10 +796,5 @@ $conn->close();
                         </table>
                     </div>
                 <?php endif; ?>
-            </main>
-        </div>
-    </div>
 
-    <script src="../assets/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<?php include 'admin_footer.php'; ?>

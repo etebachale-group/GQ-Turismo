@@ -1,0 +1,1 @@
+ALTER TABLE lugares_locales ADD COLUMN ciudad VARCHAR(255);

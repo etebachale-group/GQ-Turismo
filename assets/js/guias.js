@@ -28,6 +28,7 @@ function fetchGuias() {
 
                     col.innerHTML = `
                         <div class="card h-100 shadow-sm">
+                            <img src="${guia.imagen_perfil_url}" class="card-img-top" alt="Perfil de ${guia.nombre_guia}" style="height: 200px; object-fit: cover;">
                             <div class="card-body d-flex flex-column">
                                 <h5 class="card-title">${guia.nombre_guia}</h5>
                                 <p class="card-text text-muted">${guia.descripcion ? guia.descripcion.substring(0, 100) + '...' : 'No hay descripción disponible.'}</p>

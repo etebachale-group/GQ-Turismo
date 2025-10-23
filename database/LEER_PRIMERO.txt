@@ -1,0 +1,53 @@
+===============================================
+  IMPORTANTE - BASE DE DATOS GQ-TURISMO
+===============================================
+
+Los archivos PHP peligrosos han sido eliminados:
+- add_admin.php (ELIMINADO)
+- add_super_admin.php (ELIMINADO)
+- update_db.php (ELIMINADO)
+
+ESTA CARPETA ESTA PROTEGIDA POR .htaccess
+No es posible acceder a estos archivos desde el navegador.
+
+===============================================
+  ACCIONES DE SEGURIDAD PENDIENTES
+===============================================
+
+1. CAMBIAR CONTRASEÑA DEL SUPER ADMIN
+   - Ver: seguridad/cambiar_password_admin.php
+   - Ejecutar UNA SOLA VEZ
+   - ELIMINAR inmediatamente despues
+
+2. ELIMINAR USUARIOS DE PRUEBA
+   - Ver: seguridad/eliminar_usuarios_prueba.sql
+   - Ejecutar en phpMyAdmin
+
+3. CONFIGURAR CONTRASEÑA DE MYSQL
+   - Abrir phpMyAdmin
+   - Usuarios -> root -> Cambiar contraseña
+   - Actualizar includes/db_connect.php
+
+===============================================
+  ESTRUCTURA ACTUAL
+===============================================
+
+Scripts SQL seguros (OK para mantener):
+- add_city_to_*.sql
+- create_*.sql
+- update_*.sql
+- gq_turismo_completo.sql
+
+Archivos de proteccion:
+- .htaccess (NO ELIMINAR)
+- LEER_PRIMERO.txt (este archivo)
+
+===============================================
+  CONTACTO
+===============================================
+
+Si tienes dudas, consulta:
+- informe/SEGURIDAD_CRITICA.md
+- informe/REVISION_SEGURIDAD_COMPLETA.md
+
+===============================================

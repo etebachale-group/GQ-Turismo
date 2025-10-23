@@ -1,0 +1,2 @@
+ALTER TABLE destinos
+ADD COLUMN ciudad VARCHAR(255) NULL;

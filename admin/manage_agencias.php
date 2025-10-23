@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Verificar si el usuario ha iniciado sesión y tiene el tipo de usuario correcto
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_type'], ['agencia', 'super_admin'])) {
@@ -27,6 +29,36 @@ if ($user_type === 'agencia') {
     $stmt->close();
 }
 
+// Lógica para actualizar estado de pedido
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST['form_type'] == 'update_order_status') {
+    $order_id = $_POST['order_id'] ?? null;
+    $new_status = $_POST['new_status'] ?? '';
+    
+    if ($order_id && $new_status) {
+        if ($user_type === 'agencia' && $agency_id) {
+            $stmt_update = $conn->prepare("UPDATE pedidos_servicios SET estado = ? WHERE id = ? AND tipo_proveedor = 'agencia' AND id_proveedor = ?");
+            $stmt_update->bind_param("sii", $new_status, $order_id, $agency_id);
+            if ($stmt_update->execute()) {
+                $message = "<div class='alert alert-success'>Estado del pedido actualizado con éxito.</div>";
+            } else {
+                $message = "<div class='alert alert-danger'>Error al actualizar el estado del pedido: " . $stmt_update->error . "</div>";
+            }
+            $stmt_update->close();
+        } else if ($user_type === 'super_admin') {
+            $stmt_update = $conn->prepare("UPDATE pedidos_servicios SET estado = ? WHERE id = ?");
+            $stmt_update->bind_param("si", $new_status, $order_id);
+            if ($stmt_update->execute()) {
+                $message = "<div class='alert alert-success'>Estado del pedido actualizado con éxito.</div>";
+            } else {
+                $message = "<div class='alert alert-danger'>Error al actualizar el estado del pedido: " . $stmt_update->error . "</div>";
+            }
+            $stmt_update->close();
+        }
+    } else {
+        $message = "<div class='alert alert-danger'>Datos incompletos para actualizar el estado.</div>";
+    }
+}
+
 // Lógica para añadir/editar información de agencia
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST['form_type'] == 'agency_info') {
     $nombre_agencia = $_POST['nombre_agencia'] ?? '';
@@ -41,8 +73,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
         if ($posted_agency_id) {
             // Editar agencia existente (solo si el usuario es super_admin o es su propia agencia)
             if ($user_type === 'super_admin' || ($user_type === 'agencia' && $posted_agency_id == $agency_id)) {
-                $stmt = $conn->prepare("UPDATE agencias SET nombre_agencia = ?, descripcion = ?, contacto_email = ?, contacto_telefono = ? WHERE id = ?");
-                $stmt->bind_param("ssssi", $nombre_agencia, $descripcion, $contacto_email, $contacto_telefono, $posted_agency_id);
+                $profile_image_name = '';
+                if (isset($_FILES['imagen_perfil']) && $_FILES['imagen_perfil']['error'] == UPLOAD_ERR_OK) {
+                    $target_dir = "../assets/img/agencias/";
+                    if (!is_dir($target_dir)) { mkdir($target_dir, 0777, true); }
+                    $profile_image_name = uniqid() . "_" . basename($_FILES['imagen_perfil']['name']);
+                    $target_file = $target_dir . $profile_image_name;
+                    if (!move_uploaded_file($_FILES['imagen_perfil']['tmp_name'], $target_file)) {
+                        $message = "<div class='alert alert-danger'>Error al subir la imagen de perfil.</div>";
+                        $profile_image_name = ''; // Reset if upload fails
+                    }
+                }
+
+                $sql = "UPDATE agencias SET nombre_agencia = ?, descripcion = ?, contacto_email = ?, contacto_telefono = ?" . (!empty($profile_image_name) ? ", imagen_perfil = ?" : "") . " WHERE id = ?";
+                
+                if (!empty($profile_image_name)) {
+                    $stmt = $conn->prepare($sql);
+                    $stmt->bind_param("sssssi", $nombre_agencia, $descripcion, $contacto_email, $contacto_telefono, $profile_image_name, $posted_agency_id);
+                } else {
+                    $stmt = $conn->prepare($sql);
+                    $stmt->bind_param("ssssi", $nombre_agencia, $descripcion, $contacto_email, $contacto_telefono, $posted_agency_id);
+                }
+
                 if ($stmt->execute()) {
                     $message = "<div class='alert alert-success'>Información de la agencia actualizada con éxito.</div>";
                 } else {
@@ -217,7 +269,7 @@ if ($user_type === 'super_admin') {
         }
     }
 } else if ($user_type === 'agencia') {
-    $query = "SELECT id, nombre_agencia, descripcion, contacto_email, contacto_telefono FROM agencias WHERE id_usuario = ?";
+    $query = "SELECT id, nombre_agencia, descripcion, contacto_email, contacto_telefono, imagen_perfil FROM agencias WHERE id_usuario = ?";
     $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
@@ -246,6 +298,35 @@ if ($user_type === 'super_admin') {
         }
         $stmt_menus->close();
 
+        // Obtener pedidos de la agencia
+        $stmt_orders = $conn->prepare("
+            SELECT ps.id, 
+                   CASE 
+                       WHEN ps.tipo_item = 'servicio' THEN sa.nombre_servicio
+                       WHEN ps.tipo_item = 'menu' THEN ma.nombre_menu
+                   END AS item_name,
+                   ps.tipo_item, 
+                   u.nombre as turista_nombre, 
+                   ps.fecha_servicio, 
+                   ps.cantidad_personas, 
+                   ps.precio_total, 
+                   ps.estado,
+                   ps.fecha_solicitud
+            FROM pedidos_servicios ps
+            JOIN usuarios u ON ps.id_turista = u.id
+            LEFT JOIN servicios_agencia sa ON ps.id_servicio_o_menu = sa.id AND ps.tipo_item = 'servicio'
+            LEFT JOIN menus_agencia ma ON ps.id_servicio_o_menu = ma.id AND ps.tipo_item = 'menu'
+            WHERE ps.tipo_proveedor = 'agencia' AND ps.id_proveedor = ?
+            ORDER BY ps.fecha_solicitud DESC
+        ");
+        $stmt_orders->bind_param("i", $agency_id);
+        $stmt_orders->execute();
+        $result_orders = $stmt_orders->get_result();
+        while ($row = $result_orders->fetch_assoc()) {
+            $agency_orders[] = $row;
+        }
+        $stmt_orders->close();
+
         // Obtener datos de ingresos y estadísticas para la agencia
         $total_income_agency = 0;
         $completed_orders_count = 0;
@@ -263,7 +344,14 @@ if ($user_type === 'super_admin') {
             $stmt_income_summary->close();
 
             // Ingresos por servicio
-            $stmt_income_service = $conn->prepare("SELECT ps.item_name, SUM(ps.precio_total) as total_item_income FROM pedidos_servicios ps WHERE ps.tipo_proveedor = 'agencia' AND ps.id_proveedor = ? AND ps.tipo_item = 'servicio' AND ps.estado = 'completado' GROUP BY ps.item_name ORDER BY total_item_income DESC");
+            $stmt_income_service = $conn->prepare("
+                SELECT sa.nombre_servicio AS item_name, SUM(ps.precio_total) as total_item_income 
+                FROM pedidos_servicios ps 
+                JOIN servicios_agencia sa ON ps.id_servicio_o_menu = sa.id
+                WHERE ps.tipo_proveedor = 'agencia' AND ps.id_proveedor = ? AND ps.tipo_item = 'servicio' AND ps.estado = 'completado' 
+                GROUP BY sa.nombre_servicio 
+                ORDER BY total_item_income DESC
+            ");
             $stmt_income_service->bind_param("i", $agency_id);
             $stmt_income_service->execute();
             $result_income_service = $stmt_income_service->get_result();
@@ -273,7 +361,14 @@ if ($user_type === 'super_admin') {
             $stmt_income_service->close();
 
             // Ingresos por menú
-            $stmt_income_menu = $conn->prepare("SELECT ps.item_name, SUM(ps.precio_total) as total_item_income FROM pedidos_servicios ps WHERE ps.tipo_proveedor = 'agencia' AND ps.id_proveedor = ? AND ps.tipo_item = 'menu' AND ps.estado = 'completado' GROUP BY ps.item_name ORDER BY total_item_income DESC");
+            $stmt_income_menu = $conn->prepare("
+                SELECT ma.nombre_menu AS item_name, SUM(ps.precio_total) as total_item_income 
+                FROM pedidos_servicios ps 
+                JOIN menus_agencia ma ON ps.id_servicio_o_menu = ma.id
+                WHERE ps.tipo_proveedor = 'agencia' AND ps.id_proveedor = ? AND ps.tipo_item = 'menu' AND ps.estado = 'completado' 
+                GROUP BY ma.nombre_menu 
+                ORDER BY total_item_income DESC
+            ");
             $stmt_income_menu->bind_param("i", $agency_id);
             $stmt_income_menu->execute();
             $result_income_menu = $stmt_income_menu->get_result();
@@ -355,72 +450,19 @@ if ($user_type === 'super_admin') {
 }
 
 $conn->close();
+
+$page_title = "Gestionar Agencias";
+include 'admin_header.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestionar Agencias - Admin</title>
-    <link href="../assets/css/bootstrap.min.css" rel="stylesheet">
-    <link href="../assets/css/style.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-                <div class="position-sticky pt-3">
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link" href="dashboard.php">Dashboard</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="manage_destinos.php">Destinos</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="reservas.php">Reservas</a>
-                        </li>
-                        <?php if ($user_type === 'super_admin'): ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="manage_users.php">Usuarios</a>
-                        </li>
-                        <?php endif; ?>
-                        <?php if (in_array($user_type, ['agencia', 'super_admin'])): ?>
-                        <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="manage_agencias.php">Agencias</a>
-                        </li>
-                        <?php endif; ?>
-                        <?php if (in_array($user_type, ['guia', 'super_admin'])): ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="manage_guias.php">Guías</a>
-                        </a>
-                        </li>
-                        <?php endif; ?>
-                        <?php if (in_array($user_type, ['local', 'super_admin'])): ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="manage_locales.php">
-                                Locales
-                            </a>
-                        </li>
-                        <?php endif; ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="logout.php">Cerrar Sesión</a>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
+<div class="admin-page-header">
+    <h1>Gestionar Agencias</h1>
+    <p>Administra la información de agencias, servicios, menús y pedidos</p>
+</div>
 
-            <!-- Main content -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2">Gestionar Agencias</h1>
-                </div>
-
-                <?php if ($message): ?>
-                    <?= $message ?>
-                <?php endif; ?>
+<?php if ($message): ?>
+    <?= $message ?>
+<?php endif; ?>
 
                 <?php if ($user_type === 'agencia'): ?>
                     <?php if (!$edit_agency): ?>
@@ -447,7 +489,7 @@ $conn->close();
                         </form>
                     <?php else: // Agencia ya registrada, mostrar formulario de edición y gestión de servicios/menús ?>
                         <h2>Editar Información de Agencia</h2>
-                        <form action="manage_agencias.php" method="POST">
+                        <form action="manage_agencias.php" method="POST" enctype="multipart/form-data">
                             <input type="hidden" name="form_type" value="agency_info">
                             <input type="hidden" name="agency_id" value="<?= htmlspecialchars($edit_agency['id']) ?>">
                             <div class="mb-3">
@@ -463,10 +505,21 @@ $conn->close();
                                 <input type="email" class="form-control" id="contacto_email" name="contacto_email" value="<?= htmlspecialchars($edit_agency['contacto_email']) ?>" required>
                             </div>
                             <div class="mb-3">
-                                <label for="contacto_telefono" class="form-label">Teléfono de Contacto</label>
-                                <input type="text" class="form-control" id="contacto_telefono" name="contacto_telefono" value="<?= htmlspecialchars($edit_agency['contacto_telefono']) ?>">
+                                                            <label for="contacto_telefono" class="form-label">Teléfono de Contacto</label>
+                                                            <input type="text" class="form-control" id="contacto_telefono" name="contacto_telefono" value="<?= htmlspecialchars($edit_agency['contacto_telefono'] ?? '') ?>">
+                                                        </div>
+                            <div class="mb-3">
+                                <label for="imagen_perfil" class="form-label"><i class="bi bi-building-fill me-2"></i>Imagen de Perfil</label>
+                                <input type="file" class="form-control" id="imagen_perfil" name="imagen_perfil">
+                                <?php if ($edit_agency && isset($edit_agency['imagen_perfil']) && !empty($edit_agency['imagen_perfil'])):
+                                                                     ?>
+                                                                    <div class="mt-2">
+                                                                        <img src="../assets/img/agencias/<?= htmlspecialchars($edit_agency['imagen_perfil']) ?>" alt="Imagen de perfil" class="img-thumbnail" style="max-width: 200px;">
+                                                                    </div>
+                                                                    <small class="text-muted">Imagen actual: <a href="../assets/img/agencias/<?= htmlspecialchars($edit_agency['imagen_perfil']) ?>" target="_blank"><?= htmlspecialchars($edit_agency['imagen_perfil']) ?></a></small>
+                                                                <?php endif; ?>
                             </div>
-                            <button type="submit" class="btn btn-primary">Actualizar Agencia</button>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i>Actualizar Agencia</button>
                         </form>
 
                         <h3 class="mt-5">Gestionar Servicios</h3>
@@ -761,8 +814,7 @@ $conn->close();
                         <?php endif; ?>
 
                     <?php endif; // Fin de la lógica para usuario tipo agencia ?>
-
-                <?php if ($user_type === 'super_admin'): ?>
+                <?php elseif ($user_type === 'super_admin'): ?>
                     <h2 class="mt-5">Listado de Agencias</h2>
                     <div class="table-responsive">
                         <table class="table table-striped table-sm">
@@ -780,13 +832,13 @@ $conn->close();
                                 <?php if (count($agencies) > 0): ?>
                                     <?php foreach ($agencies as $agency): ?>
                                         <tr>
-                                            <td><?= htmlspecialchars($agency['id']) ?></td>
-                                            <td><?= htmlspecialchars($agency['usuario_nombre']) ?></td>
-                                            <td><?= htmlspecialchars($agency['nombre_agencia']) ?></td>
-                                            <td><?= htmlspecialchars($agency['contacto_email']) ?></td>
-                                            <td><?= htmlspecialchars($agency['contacto_telefono']) ?></td>
+<td><?php echo htmlspecialchars($agency['id']) ?></td>
+                                            <td><?php echo htmlspecialchars($agency['usuario_nombre']) ?></td>
+                                            <td><?php echo htmlspecialchars($agency['nombre_agencia']) ?></td>
+                                            <td><?php echo htmlspecialchars($agency['contacto_email']) ?></td>
+                                            <td><?php echo htmlspecialchars($agency['contacto_telefono']) ?></td>
                                             <td>
-                                                <a href="manage_agencias.php?action=delete&id=<?= htmlspecialchars($agency['id']) ?>" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar esta agencia?');">Eliminar</a>
+                                                <a href="manage_agencias.php?action=delete&id=<?php echo htmlspecialchars($agency['id']) ?>" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar esta agencia?');">Eliminar</a>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -799,10 +851,5 @@ $conn->close();
                         </table>
                     </div>
                 <?php endif; ?>
-            </main>
-        </div>
-    </div>
-
-    <script src="../assets/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+            
+<?php include 'admin_footer.php'; ?>

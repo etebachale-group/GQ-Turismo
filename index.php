@@ -78,6 +78,97 @@ if ($conn) {
     }
 } // End of if ($conn) block
 
+// Lógica para recomendaciones sofisticadas
+$recommended_items = [];
+if ($is_logged_in && $user_type === 'turista') {
+    // 1. Obtener historial de destinos de itinerarios
+    $preferred_categories = [];
+    $stmt_itinerary_history = $conn->prepare("
+        SELECT d.categoria, COUNT(d.categoria) as count
+        FROM itinerarios i
+        JOIN itinerario_destinos id ON i.id = id.id_itinerario
+        JOIN destinos d ON id.id_destino = d.id
+        WHERE i.id_usuario = ?
+        GROUP BY d.categoria
+        ORDER BY count DESC
+        LIMIT 3
+    ");
+    $stmt_itinerary_history->bind_param("i", $_SESSION['user_id']);
+    $stmt_itinerary_history->execute();
+    $result_itinerary_history = $stmt_itinerary_history->get_result();
+    while ($row = $result_itinerary_history->fetch_assoc()) {
+        $preferred_categories[] = $row['categoria'];
+    }
+    $stmt_itinerary_history->close();
+
+    // 2. Obtener historial de tipos de proveedores de pedidos
+    $preferred_provider_types = [];
+    $stmt_order_history = $conn->prepare("
+        SELECT tipo_proveedor, COUNT(tipo_proveedor) as count
+        FROM pedidos_servicios
+        WHERE id_turista = ?
+        GROUP BY tipo_proveedor
+        ORDER BY count DESC
+        LIMIT 3
+    ");
+    $stmt_order_history->bind_param("i", $_SESSION['user_id']);
+    $stmt_order_history->execute();
+    $result_order_history = $stmt_order_history->get_result();
+    while ($row = $result_order_history->fetch_assoc()) {
+        $preferred_provider_types[] = $row['tipo_proveedor'];
+    }
+    $stmt_order_history->close();
+
+    // Generar recomendaciones basadas en preferencias
+    $recommendation_queries = [];
+    $recommendation_params = [];
+    $recommendation_param_types = '';
+
+    // Recomendaciones de Destinos basadas en categorías preferidas
+    if (!empty($preferred_categories)) {
+        $placeholders = implode(',', array_fill(0, count($preferred_categories), '?'));
+        $recommendation_queries[] = "(SELECT id, nombre as name, 'destino' as type, imagen as ruta_imagen FROM destinos WHERE categoria IN ($placeholders) ORDER BY RAND() LIMIT 2)";
+        foreach ($preferred_categories as $cat) {
+            $recommendation_params[] = $cat;
+            $recommendation_param_types .= 's';
+        }
+    }
+
+    // Recomendaciones de Agencias/Guías/Locales basadas en tipos de proveedores preferidos
+    foreach ($preferred_provider_types as $p_type) {
+        if ($p_type === 'agencia') {
+            $recommendation_queries[] = "(SELECT id, nombre_agencia as name, 'agencia' as type, NULL as ruta_imagen FROM agencias ORDER BY RAND() LIMIT 1)";
+        } elseif ($p_type === 'guia') {
+            $recommendation_queries[] = "(SELECT id, nombre_guia as name, 'guia' as type, NULL as ruta_imagen FROM guias_turisticos ORDER BY RAND() LIMIT 1)";
+        } elseif ($p_type === 'local') {
+            $recommendation_queries[] = "(SELECT id, nombre_local as name, 'local' as type, NULL as ruta_imagen FROM lugares_locales ORDER BY RAND() LIMIT 1)";
+        }
+    }
+
+    // Si no hay historial, o para complementar, añadir algunos ítems populares/aleatorios
+    if (empty($recommendation_queries)) {
+        $recommendation_queries[] = "(SELECT id, nombre as name, 'destino' as type, imagen as ruta_imagen FROM destinos ORDER BY RAND() LIMIT 2)";
+        $recommendation_queries[] = "(SELECT id, nombre_agencia as name, 'agencia' as type, NULL as ruta_imagen FROM agencias ORDER BY RAND() LIMIT 1)";
+        $recommendation_queries[] = "(SELECT id, nombre_guia as name, 'guia' as type, NULL as ruta_imagen FROM guias_turisticos ORDER BY RAND() LIMIT 1)";
+    }
+
+    if (!empty($recommendation_queries)) {
+        $full_recommendation_query = implode(' UNION ALL ', $recommendation_queries);
+        $stmt_recommendations = $conn->prepare($full_recommendation_query);
+        
+        if (!empty($recommendation_params)) {
+            $stmt_recommendations->bind_param($recommendation_param_types, ...$recommendation_params);
+        }
+        
+        $stmt_recommendations->execute();
+        $result_recommendations = $stmt_recommendations->get_result();
+        while ($row = $result_recommendations->fetch_assoc()) {
+            $recommended_items[] = $row;
+        }
+        $stmt_recommendations->close();
+    }
+}
+
 // Fetch recently added items for recommendations
 $recently_added_items = [];
 
@@ -92,7 +183,7 @@ if ($conn) { // Ensure connection is open for these queries
     $stmt_destinos->close();
 
     // Fetch recently added agencies
-    $stmt_agencias = $conn->prepare("SELECT id, nombre_agencia as name, 'agencia' as type, NULL as ruta_imagen FROM agencias ORDER BY id DESC LIMIT 3");
+    $stmt_agencias = $conn->prepare("SELECT id, nombre_agencia as name, 'agencia' as type, imagen_perfil as ruta_imagen FROM agencias ORDER BY id DESC LIMIT 3");
     $stmt_agencias->execute();
     $result_agencias = $stmt_agencias->get_result();
     while ($row = $result_agencias->fetch_assoc()) {
@@ -101,7 +192,7 @@ if ($conn) { // Ensure connection is open for these queries
     $stmt_agencias->close();
 
     // Fetch recently added guides
-    $stmt_guias = $conn->prepare("SELECT id, nombre_guia as name, 'guia' as type, NULL as ruta_imagen FROM guias_turisticos ORDER BY id DESC LIMIT 3");
+    $stmt_guias = $conn->prepare("SELECT id, nombre_guia as name, 'guia' as type, imagen_perfil as ruta_imagen FROM guias_turisticos ORDER BY id DESC LIMIT 3");
     $stmt_guias->execute();
     $result_guias = $stmt_guias->get_result();
     while ($row = $result_guias->fetch_assoc()) {
@@ -110,7 +201,7 @@ if ($conn) { // Ensure connection is open for these queries
     $stmt_guias->close();
 
     // Fetch recently added locales
-    $stmt_locales = $conn->prepare("SELECT id, nombre_local as name, 'local' as type, NULL as ruta_imagen FROM lugares_locales ORDER BY id DESC LIMIT 3");
+    $stmt_locales = $conn->prepare("SELECT id, nombre_local as name, 'local' as type, imagen_perfil as ruta_imagen FROM lugares_locales ORDER BY id DESC LIMIT 3");
     $stmt_locales->execute();
     $result_locales = $stmt_locales->get_result();
     while ($row = $result_locales->fetch_assoc()) {
@@ -206,6 +297,27 @@ if ($conn) { // Ensure connection is open for these queries
             <div class="col-md-3">
                 <button type="submit" class="btn btn-primary btn-lg w-100">Buscar</button>
             </div>
+            <div class="col-12 text-center mt-3">
+                <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#advancedSearchCollapse" aria-expanded="false" aria-controls="advancedSearchCollapse">
+                    Búsqueda Avanzada <i class="bi bi-chevron-down"></i>
+                </button>
+            </div>
+            <div class="collapse" id="advancedSearchCollapse">
+                <div class="row g-3 mt-2">
+                    <div class="col-md-4">
+                        <label for="latitude" class="visually-hidden">Latitud</label>
+                        <input type="text" class="form-control" id="latitude" name="latitude" placeholder="Latitud (ej: 1.50)">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="longitude" class="visually-hidden">Longitud</label>
+                        <input type="text" class="form-control" id="longitude" name="longitude" placeholder="Longitud (ej: 10.00)">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="radius" class="visually-hidden">Radio (km)</label>
+                        <input type="number" step="0.1" class="form-control" id="radius" name="radius" placeholder="Radio en km (ej: 50)">
+                    </div>
+                </div>
+            </div>
         </form>
     </div>
 </section>
@@ -254,12 +366,18 @@ if ($conn) { // Ensure connection is open for these queries
                                 $image_path = '';
                                 if ($item['type'] === 'destino' && !empty($item['ruta_imagen'])) {
                                     $image_path = 'assets/img/destinos/' . $item['ruta_imagen'];
-                                } else if ($item['type'] === 'agencia') {
-                                    $image_path = 'assets/img/agencias/default.jpg'; // Placeholder
-                                } else if ($item['type'] === 'guia') {
-                                    $image_path = 'assets/img/guias/default.jpg'; // Placeholder
-                                } else if ($item['type'] === 'local') {
-                                    $image_path = 'assets/img/locales/default.jpg'; // Placeholder
+                                } else if ($item['type'] === 'agencia' && !empty($item['ruta_imagen'])) { // Usar imagen_perfil si existe
+                                    $image_path = 'assets/img/agencias/' . $item['ruta_imagen'];
+                                } else if ($item['type'] === 'agencia') { // Placeholder si no hay imagen de perfil
+                                    $image_path = 'assets/img/agencias/default.jpg';
+                                } else if ($item['type'] === 'guia' && !empty($item['ruta_imagen'])) { // Usar imagen_perfil si existe
+                                    $image_path = 'assets/img/guias/' . $item['ruta_imagen'];
+                                } else if ($item['type'] === 'guia') { // Placeholder si no hay imagen de perfil
+                                    $image_path = 'assets/img/guias/default.jpg';
+                                } else if ($item['type'] === 'local' && !empty($item['ruta_imagen'])) { // Usar imagen_perfil si existe
+                                    $image_path = 'assets/img/locales/' . $item['ruta_imagen'];
+                                } else if ($item['type'] === 'local') { // Placeholder si no hay imagen de perfil
+                                    $image_path = 'assets/img/locales/default.jpg';
                                 }
                             ?>
                             <?php if (!empty($image_path)): ?>
