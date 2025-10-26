@@ -1,151 +1,108 @@
--- ============================================
--- CORRECCIONES COMPLETAS DE BASE DE DATOS
--- GQ-Turismo - Fix All Errors
--- Fecha: 23 de Octubre de 2025
--- ============================================
+-- Fix all database errors
+-- Ejecutar este archivo para corregir todos los errores de la base de datos
 
-USE gq_turismo;
-
--- ============================================
--- 1. AGREGAR COLUMNA nombre_servicio A pedidos_servicios SI NO EXISTE
--- ============================================
-SET @column_exists = (
-    SELECT COUNT(*)
-    FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_SCHEMA = 'gq_turismo'
-    AND TABLE_NAME = 'pedidos_servicios'
-    AND COLUMN_NAME = 'nombre_servicio'
-);
-
-SET @sql_add_column = IF(@column_exists = 0,
-    'ALTER TABLE `pedidos_servicios` ADD COLUMN `nombre_servicio` VARCHAR(255) NULL AFTER `tipo_item`',
-    'SELECT "La columna nombre_servicio ya existe" AS mensaje'
-);
-
-PREPARE stmt FROM @sql_add_column;
+-- 1. Agregar columna precio a itinerario_destinos si no existe
+SET @exist := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'itinerario_destinos' AND COLUMN_NAME = 'precio');
+SET @sqlstmt := IF(@exist = 0, 'ALTER TABLE `itinerario_destinos` ADD COLUMN `precio` DECIMAL(10,2) DEFAULT 0.00 AFTER `orden`', 'SELECT "Column precio already exists"');
+PREPARE stmt FROM @sqlstmt;
 EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
 
--- ============================================
--- 2. MODIFICAR ENUM DE estado EN pedidos_servicios
--- ============================================
-ALTER TABLE `pedidos_servicios` 
-MODIFY COLUMN `estado` ENUM('pendiente','confirmado','cancelado','completado','pagado') 
-NOT NULL DEFAULT 'pendiente';
-
--- ============================================
--- 3. VERIFICAR Y ACTUALIZAR TABLA reservas
--- ============================================
--- La tabla reservas debe tener fecha_reserva, no fecha
--- Si existe una columna 'fecha', renombrarla a 'fecha_reserva'
-SET @column_fecha_exists = (
-    SELECT COUNT(*)
-    FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_SCHEMA = 'gq_turismo'
-    AND TABLE_NAME = 'reservas'
-    AND COLUMN_NAME = 'fecha'
-);
-
-SET @sql_rename_fecha = IF(@column_fecha_exists > 0,
-    'ALTER TABLE `reservas` CHANGE COLUMN `fecha` `fecha_reserva` DATE NOT NULL',
-    'SELECT "La columna fecha no existe, OK" AS mensaje'
-);
-
-PREPARE stmt FROM @sql_rename_fecha;
+-- 2. Agregar columnas de fecha a itinerarios si no existen
+SET @exist := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'itinerarios' AND COLUMN_NAME = 'fecha_inicio');
+SET @sqlstmt := IF(@exist = 0, 'ALTER TABLE `itinerarios` ADD COLUMN `fecha_inicio` DATE NULL AFTER `presupuesto_estimado`', 'SELECT "Column fecha_inicio already exists"');
+PREPARE stmt FROM @sqlstmt;
 EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
 
--- ============================================
--- 4. ACTUALIZAR nombre_servicio PARA REGISTROS EXISTENTES
--- ============================================
--- Para servicios de agencia
-UPDATE pedidos_servicios ps
-INNER JOIN servicios_agencia sa ON ps.id_servicio_o_menu = sa.id AND ps.tipo_proveedor = 'agencia' AND ps.tipo_item = 'servicio'
-SET ps.nombre_servicio = sa.nombre_servicio
-WHERE ps.nombre_servicio IS NULL;
+SET @exist := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'itinerarios' AND COLUMN_NAME = 'fecha_fin');
+SET @sqlstmt := IF(@exist = 0, 'ALTER TABLE `itinerarios` ADD COLUMN `fecha_fin` DATE NULL AFTER `fecha_inicio`', 'SELECT "Column fecha_fin already exists"');
+PREPARE stmt FROM @sqlstmt;
+EXECUTE stmt;
 
--- Para menús de agencia
-UPDATE pedidos_servicios ps
-INNER JOIN menus_agencia ma ON ps.id_servicio_o_menu = ma.id AND ps.tipo_proveedor = 'agencia' AND ps.tipo_item = 'menu'
-SET ps.nombre_servicio = ma.nombre_menu
-WHERE ps.nombre_servicio IS NULL;
+-- 3. Agregar columna descripcion a itinerarios si no existe
+SET @exist := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'itinerarios' AND COLUMN_NAME = 'descripcion');
+SET @sqlstmt := IF(@exist = 0, 'ALTER TABLE `itinerarios` ADD COLUMN `descripcion` TEXT NULL AFTER `nombre_itinerario`', 'SELECT "Column descripcion already exists"');
+PREPARE stmt FROM @sqlstmt;
+EXECUTE stmt;
 
--- Para servicios de guía
-UPDATE pedidos_servicios ps
-INNER JOIN servicios_guia sg ON ps.id_servicio_o_menu = sg.id AND ps.tipo_proveedor = 'guia' AND ps.tipo_item = 'servicio'
-SET ps.nombre_servicio = sg.nombre_servicio
-WHERE ps.nombre_servicio IS NULL;
-
--- Para servicios de local
-UPDATE pedidos_servicios ps
-INNER JOIN servicios_local sl ON ps.id_servicio_o_menu = sl.id AND ps.tipo_proveedor = 'local' AND ps.tipo_item = 'servicio'
-SET ps.nombre_servicio = sl.nombre_servicio
-WHERE ps.nombre_servicio IS NULL;
-
--- Para menús de local
-UPDATE pedidos_servicios ps
-INNER JOIN menus_local ml ON ps.id_servicio_o_menu = ml.id AND ps.tipo_proveedor = 'local' AND ps.tipo_item = 'menu'
-SET ps.nombre_servicio = ml.nombre_menu
-WHERE ps.nombre_servicio IS NULL;
-
--- ============================================
--- 5. VERIFICAR QUE TABLA mensajes EXISTE
--- ============================================
-CREATE TABLE IF NOT EXISTS `mensajes` (
+-- 4. Crear tabla itinerario_tareas si no existe
+CREATE TABLE IF NOT EXISTS `itinerario_tareas` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `sender_id` int(11) NOT NULL,
-  `sender_type` ENUM('turista', 'agencia', 'guia', 'local', 'super_admin') NOT NULL,
-  `receiver_id` int(11) NOT NULL,
-  `receiver_type` ENUM('turista', 'agencia', 'guia', 'local', 'super_admin') NOT NULL,
-  `message` TEXT NOT NULL,
-  `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `is_read` BOOLEAN NOT NULL DEFAULT FALSE,
+  `id_itinerario` int(11) NOT NULL,
+  `id_destino` int(11) DEFAULT NULL,
+  `id_proveedor` int(11) DEFAULT NULL,
+  `tipo_proveedor` enum('agencia','guia','local') DEFAULT NULL,
+  `tipo_tarea` enum('transporte','alojamiento','actividad','comida','guia','otro') NOT NULL,
+  `titulo` varchar(255) NOT NULL,
+  `descripcion` TEXT,
+  `fecha_hora_inicio` DATETIME,
+  `fecha_hora_fin` DATETIME,
+  `ubicacion` varchar(255),
+  `estado` enum('pendiente','en_progreso','completado','cancelado') DEFAULT 'pendiente',
+  `notas` TEXT,
+  `precio` DECIMAL(10,2) DEFAULT 0.00,
+  `orden` INT DEFAULT 0,
+  `creado_en` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `actualizado_en` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_sender` (`sender_id`, `sender_type`),
-  KEY `idx_receiver` (`receiver_id`, `receiver_type`),
-  KEY `idx_timestamp` (`timestamp`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `id_itinerario` (`id_itinerario`),
+  KEY `id_destino` (`id_destino`),
+  KEY `id_proveedor` (`id_proveedor`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ============================================
--- 6. AGREGAR ÍNDICES PARA MEJOR RENDIMIENTO
--- ============================================
--- Índices en pedidos_servicios
-ALTER TABLE `pedidos_servicios` 
-ADD INDEX IF NOT EXISTS `idx_proveedor` (`tipo_proveedor`, `id_proveedor`),
-ADD INDEX IF NOT EXISTS `idx_turista` (`id_turista`),
-ADD INDEX IF NOT EXISTS `idx_estado` (`estado`);
+-- 5. Agregar columna estado a itinerario_destinos si no existe
+SET @exist := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'itinerario_destinos' AND COLUMN_NAME = 'estado');
+SET @sqlstmt := IF(@exist = 0, 'ALTER TABLE `itinerario_destinos` ADD COLUMN `estado` enum(\'pendiente\',\'en_progreso\',\'completado\') DEFAULT \'pendiente\' AFTER `orden`', 'SELECT "Column estado already exists"');
+PREPARE stmt FROM @sqlstmt;
+EXECUTE stmt;
 
--- Índices en reservas
-ALTER TABLE `reservas` 
-ADD INDEX IF NOT EXISTS `idx_usuario` (`id_usuario`),
-ADD INDEX IF NOT EXISTS `idx_fecha` (`fecha_reserva`),
-ADD INDEX IF NOT EXISTS `idx_estado` (`estado`);
+-- 6. Agregar columna id_itinerario a pedidos_servicios si no existe
+SET @exist := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pedidos_servicios' AND COLUMN_NAME = 'id_itinerario');
+SET @sqlstmt := IF(@exist = 0, 'ALTER TABLE `pedidos_servicios` ADD COLUMN `id_itinerario` INT DEFAULT NULL AFTER `id_turista`', 'SELECT "Column id_itinerario already exists"');
+PREPARE stmt FROM @sqlstmt;
+EXECUTE stmt;
 
--- ============================================
--- 7. VERIFICACIÓN FINAL
--- ============================================
-SELECT 'VERIFICACIÓN DE CORRECCIONES' AS titulo;
+-- 7. Asegurar que la tabla guia_destinos existe
+CREATE TABLE IF NOT EXISTS `guia_destinos` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_guia` int(11) NOT NULL,
+  `id_destino` int(11) NOT NULL,
+  `experiencia_anos` INT DEFAULT 0,
+  `descripcion` TEXT,
+  `certificaciones` TEXT,
+  `idiomas` VARCHAR(255),
+  `tarifa_dia` DECIMAL(10,2) DEFAULT 0.00,
+  `disponible` TINYINT(1) DEFAULT 1,
+  `creado_en` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `guia_destino_unique` (`id_guia`, `id_destino`),
+  KEY `id_guia` (`id_guia`),
+  KEY `id_destino` (`id_destino`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_SCHEMA = 'gq_turismo'
-AND TABLE_NAME = 'pedidos_servicios'
-AND COLUMN_NAME IN ('nombre_servicio', 'estado')
-ORDER BY ORDINAL_POSITION;
+-- 8. Agregar columna imagen a publicidad_carousel si no existe
+SET @exist := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'publicidad_carousel' AND COLUMN_NAME = 'imagen');
+SET @sqlstmt := IF(@exist = 0, 'ALTER TABLE `publicidad_carousel` ADD COLUMN `imagen` VARCHAR(255) DEFAULT NULL AFTER `descripcion`', 'SELECT "Column imagen already exists"');
+PREPARE stmt FROM @sqlstmt;
+EXECUTE stmt;
 
-SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_SCHEMA = 'gq_turismo'
-AND TABLE_NAME = 'reservas'
-AND COLUMN_NAME LIKE '%fecha%'
-ORDER BY ORDINAL_POSITION;
+-- 9. Actualizar itinerarios existentes con fechas default
+UPDATE `itinerarios` 
+SET `fecha_inicio` = DATE_ADD(CURDATE(), INTERVAL 7 DAY),
+    `fecha_fin` = DATE_ADD(CURDATE(), INTERVAL 14 DAY)
+WHERE `fecha_inicio` IS NULL OR `fecha_fin` IS NULL;
 
-SELECT COUNT(*) AS total_pedidos,
-       SUM(CASE WHEN nombre_servicio IS NOT NULL THEN 1 ELSE 0 END) AS con_nombre_servicio,
-       SUM(CASE WHEN nombre_servicio IS NULL THEN 1 ELSE 0 END) AS sin_nombre_servicio
-FROM pedidos_servicios;
+-- 10. Agregar columna estado_itinerario a itinerarios
+SET @exist := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'itinerarios' AND COLUMN_NAME = 'estado_itinerario');
+SET @sqlstmt := IF(@exist = 0, 'ALTER TABLE `itinerarios` ADD COLUMN `estado_itinerario` enum(\'borrador\',\'confirmado\',\'iniciado\',\'en_curso\',\'completado\',\'cancelado\') DEFAULT \'borrador\' AFTER `estado`', 'SELECT "Column estado_itinerario already exists"');
+PREPARE stmt FROM @sqlstmt;
+EXECUTE stmt;
 
--- ============================================
--- FIN DE CORRECCIONES
--- ============================================
-SELECT 'CORRECCIONES APLICADAS EXITOSAMENTE' AS resultado;
+SELECT 'Base de datos actualizada correctamente' as mensaje;

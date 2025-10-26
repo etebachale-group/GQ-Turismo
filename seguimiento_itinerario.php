@@ -53,7 +53,17 @@ $stmt->close();
 
 // Obtener todos los destinos del itinerario
 $stmt = $conn->prepare("
-    SELECT id.*, d.nombre, d.descripcion, d.imagen, d.latitude, d.longitude, d.ciudad
+    SELECT id.*, 
+           d.nombre, 
+           d.descripcion as descripcion_destino, 
+           d.imagen, 
+           d.latitude, 
+           d.longitude, 
+           d.ciudad,
+           COALESCE(id.fecha_inicio, NULL) as fecha_inicio,
+           COALESCE(id.fecha_fin, NULL) as fecha_fin,
+           COALESCE(id.descripcion, '') as descripcion,
+           COALESCE(id.precio, 0.00) as precio
     FROM itinerario_destinos id
     JOIN destinos d ON id.id_destino = d.id
     WHERE id.id_itinerario = ?
@@ -262,9 +272,9 @@ include 'includes/header.php';
                             <div>
                                 <h1 class="h3 mb-2">
                                     <i class="bi bi-map me-2"></i>
-                                    <?= htmlspecialchars($itinerario['nombre_itinerario']) ?>
+                                    <?= htmlspecialchars($itinerario['nombre_itinerario'] ?? 'Itinerario') ?>
                                 </h1>
-                                <?php if (!empty($itinerario['descripcion'])): ?>
+                                <?php if (isset($itinerario['descripcion']) && !empty($itinerario['descripcion'])): ?>
                                 <p class="text-muted mb-0"><?= htmlspecialchars($itinerario['descripcion']) ?></p>
                                 <?php endif; ?>
                             </div>
@@ -308,9 +318,16 @@ include 'includes/header.php';
                 <div class="timeline-card <?= $isCompleted ? 'completed' : '' ?>">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
-                            <h4 class="h5 mb-1"><?= htmlspecialchars($destino['nombre']) ?></h4>
+                            <h4 class="h5 mb-1"><?= htmlspecialchars($destino['nombre'] ?? 'Destino') ?></h4>
                             <?php if (!empty($destino['ciudad'])): ?>
                             <p class="text-muted small mb-2"><?= htmlspecialchars($destino['ciudad']) ?></p>
+                            <?php endif; ?>
+                            <?php if (!empty($destino['fecha_inicio']) && !empty($destino['fecha_fin'])): ?>
+                            <p class="text-muted small">
+                                <i class="bi bi-calendar"></i> 
+                                <?= date('d/m/Y', strtotime($destino['fecha_inicio'])) ?> - 
+                                <?= date('d/m/Y', strtotime($destino['fecha_fin'])) ?>
+                            </p>
                             <?php endif; ?>
                         </div>
                         <span class="status-badge <?= $estado ?>">
@@ -319,8 +336,8 @@ include 'includes/header.php';
                         </span>
                     </div>
                     
-                    <?php if (!empty($destino['descripcion'])): ?>
-                    <p class="text-muted"><?= htmlspecialchars($destino['descripcion']) ?></p>
+                    <?php if (isset($destino['descripcion']) && !empty($destino['descripcion']) || isset($destino['descripcion_destino']) && !empty($destino['descripcion_destino'])): ?>
+                    <p class="text-muted"><?= htmlspecialchars($destino['descripcion'] ?? $destino['descripcion_destino'] ?? '') ?></p>
                     <?php endif; ?>
                     
                     <?php if (!empty($destino['fecha_inicio']) || !empty($destino['fecha_fin']) || !empty($destino['precio'])): ?>

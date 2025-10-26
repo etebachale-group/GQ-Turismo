@@ -1,3 +1,75 @@
+<?php
+session_start();
+require_once 'includes/db_connect.php';
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: index.php");
+    exit();
+}
+
+$user_id = $_SESSION['user_id'];
+$user_type = $_SESSION['user_type'];
+$itinerario_id = $_GET['id'] ?? null;
+
+if (!$itinerario_id) {
+    header("Location: itinerario.php");
+    exit();
+}
+
+// Obtener información del itinerario
+$stmt = $conn->prepare("SELECT * FROM itinerarios WHERE id = ?");
+$stmt->bind_param("i", $itinerario_id);
+$stmt->execute();
+$itinerario = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+if (!$itinerario) {
+    header("Location: itinerario.php");
+    exit();
+}
+
+// Obtener tareas del itinerario
+$stmt = $conn->prepare("
+    SELECT t.*, 
+           d.nombre as destino_nombre,
+           u.nombre as proveedor_nombre
+    FROM itinerario_tareas t
+    LEFT JOIN destinos d ON t.id_destino = d.id
+    LEFT JOIN usuarios u ON t.id_proveedor = u.id
+    WHERE t.id_itinerario = ?
+    ORDER BY t.fecha_hora_inicio ASC, t.id ASC
+");
+$stmt->bind_param("i", $itinerario_id);
+$stmt->execute();
+$tareas = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+
+// Calcular estadísticas
+$total_tareas = count($tareas);
+$completadas = count(array_filter($tareas, fn($t) => $t['estado'] === 'completado'));
+$en_progreso = count(array_filter($tareas, fn($t) => $t['estado'] === 'en_progreso'));
+$pendientes = count(array_filter($tareas, fn($t) => $t['estado'] === 'pendiente'));
+$progreso = $total_tareas > 0 ? round(($completadas / $total_tareas) * 100) : 0;
+
+// Iconos por tipo de tarea
+function getTaskIcon($tipo) {
+    $icons = [
+        'transporte' => 'bi-bus-front',
+        'alojamiento' => 'bi-building',
+        'actividad' => 'bi-star',
+        'comida' => 'bi-cup-hot',
+        'guia' => 'bi-person-badge',
+        'otro' => 'bi-bookmark'
+    ];
+    return $icons[$tipo] ?? 'bi-circle';
+}
+
+// Función para formatear fechas
+function formatDate($date) {
+    if (!$date) return 'No asignada';
+    return date('d/m/Y H:i', strtotime($date));
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -284,20 +356,6 @@
     </style>
 </head>
 <body>
-<?php
-session_start();
-require_once 'includes/db_connect.php';
-
-if (!isset($_SESSION['user_id'])) {
-    header("Location: index.php");
-    exit();
-}
-
-$user_id = $_SESSION['user_id'];
-$user_type = $_SESSION['user_type'];
-$itinerario_id = $_GET['id'] ?? null;
-
-if (!$itinerario_id) {
     header("Location: itinerario.php");
     exit();
 }
@@ -349,13 +407,6 @@ function getTaskIcon($tipo) {
     ];
     return $icons[$tipo] ?? 'bi-circle';
 }
-
-// Función para formatear fechas
-function formatDate($date) {
-    if (!$date) return 'No asignada';
-    return date('d/m/Y H:i', strtotime($date));
-}
-?>
 
 <div class="task-map-container">
     <!-- Header Card -->
@@ -549,10 +600,15 @@ document.querySelectorAll('.filter-tab').forEach(tab => {
 function updateTaskStatus(taskId, newStatus) {
     if (!confirm('¿Estás seguro de cambiar el estado de esta tarea?')) return;
     
-    fetch('api/update_task_status.php', {
+    fetch('api/itinerario_tracking.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task_id: taskId, status: newStatus })
+        body: JSON.stringify({ 
+            action: 'update_task_status',
+            task_id: taskId, 
+            status: newStatus,
+            itinerario_id: <?= $itinerario_id ?>
+        })
     })
     .then(response => response.json())
     .then(data => {
@@ -579,10 +635,14 @@ function saveNotes() {
     const taskId = document.getElementById('taskIdForNotes').value;
     const notes = document.getElementById('taskNotes').value;
     
-    fetch('api/update_task_notes.php', {
+    fetch('api/itinerario_tracking.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task_id: taskId, notes: notes })
+        body: JSON.stringify({ 
+            action: 'add_note',
+            task_id: taskId, 
+            note: notes 
+        })
     })
     .then(response => response.json())
     .then(data => {

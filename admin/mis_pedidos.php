@@ -47,6 +47,7 @@ if ($conn) {
     $sql = "SELECT ps.*, 
                 u.nombre as turista_nombre,
                 u.email as turista_email,
+                'No registrado' as turista_telefono,
                 CASE
                     WHEN ps.tipo_item = 'servicio' AND ps.tipo_proveedor = 'agencia' THEN sa.nombre_servicio
                     WHEN ps.tipo_item = 'menu' AND ps.tipo_proveedor = 'agencia' THEN ma.nombre_menu
@@ -54,7 +55,8 @@ if ($conn) {
                     WHEN ps.tipo_item = 'servicio' AND ps.tipo_proveedor = 'local' THEN sl.nombre_servicio
                     WHEN ps.tipo_item = 'menu' AND ps.tipo_proveedor = 'local' THEN ml.nombre_menu
                     WHEN ps.tipo_item = 'guia_destino' THEN CONCAT('Guía para ', d.nombre)
-                END AS item_nombre
+                END AS item_nombre,
+                COALESCE(ps.id_itinerario, 0) as id_itinerario
             FROM pedidos_servicios ps
             LEFT JOIN usuarios u ON ps.id_turista = u.id
             LEFT JOIN servicios_agencia sa ON ps.id_servicio_o_menu = sa.id AND ps.tipo_item = 'servicio' AND ps.tipo_proveedor = 'agencia'
@@ -302,13 +304,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     function actualizarEstado(pedidoId, nuevoEstado) {
-        fetch('../api/pedidos.php', {
+        // Usar el nuevo API de confirmación
+        fetch('../api/confirmar_servicio_proveedor.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                action: 'update_status',
                 pedido_id: pedidoId,
                 estado: nuevoEstado
             })

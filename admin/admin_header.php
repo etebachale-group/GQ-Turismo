@@ -13,7 +13,7 @@ $base_url = '../';
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title><?= $page_title ?? 'Dashboard' ?> - GQ-Turismo Admin</title>
 
     <!-- Google Fonts -->
@@ -29,7 +29,12 @@ $base_url = '../';
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="<?= $base_url ?>assets/css/modern-ui.css">
+    <link rel="stylesheet" href="<?= $base_url ?>assets/css/mobile-optimization.css">
     <link rel="stylesheet" href="<?= $base_url ?>assets/css/admin-mobile.css">
+    <link rel="stylesheet" href="<?= $base_url ?>assets/css/mobile-fixes.css">
+    <link rel="stylesheet" href="<?= $base_url ?>assets/css/mobile-responsive.css">
+    <link rel="stylesheet" href="<?= $base_url ?>assets/css/mobile-responsive-admin.css">
+    <link rel="stylesheet" href="<?= $base_url ?>assets/css/mobile-responsive-final.css">
 
     <!-- Logo -->
     <link rel="icon" href="<?= $base_url ?>assets/img/logo.png" type="image/x-icon">
@@ -448,6 +453,15 @@ $base_url = '../';
                 <a href="manage_publicidad_carousel.php" class="admin-sidebar-link <?= basename($_SERVER['PHP_SELF']) == 'manage_publicidad_carousel.php' ? 'active' : '' ?>">
                     <i class="bi bi-images"></i>
                     <span>Publicidad</span>
+                </a>
+            </li>
+            <?php endif; ?>
+            
+            <?php if ($user_type === 'guia'): ?>
+            <li>
+                <a href="mis_destinos_guia.php" class="admin-sidebar-link <?= basename($_SERVER['PHP_SELF']) == 'mis_destinos_guia.php' ? 'active' : '' ?>">
+                    <i class="bi bi-geo-alt-fill"></i>
+                    <span>Mis Destinos</span>
                 </a>
             </li>
             <?php endif; ?>
