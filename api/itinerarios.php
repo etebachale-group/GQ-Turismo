@@ -3,7 +3,7 @@ header('Content-Type: application/json');
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-require_once '../includes/db_connect.php';
+require_once __DIR__ . '/../includes/db_connect.php';
 
 $response = ['success' => false, 'message' => ''];
 
@@ -78,8 +78,16 @@ if ($method === 'POST') {
             $stmt->close();
 
             // Eliminar destinos y servicios anteriores
-            $conn->query("DELETE FROM itinerario_destinos WHERE id_itinerario = $itinerario_id");
-            $conn->query("DELETE FROM itinerario_servicios WHERE id_itinerario = $itinerario_id");
+            $stmt_del_d = $conn->prepare("DELETE FROM itinerario_destinos WHERE id_itinerario = ?");
+            $id_iti_clean = (int)$itinerario_id;
+            $stmt_del_d->bind_param("i", $id_iti_clean);
+            $stmt_del_d->execute();
+            $stmt_del_d->close();
+
+            $stmt_del_s = $conn->prepare("DELETE FROM itinerario_servicios WHERE id_itinerario = ?");
+            $stmt_del_s->bind_param("i", $id_iti_clean);
+            $stmt_del_s->execute();
+            $stmt_del_s->close();
 
             $response['message'] = 'Itinerario actualizado exitosamente';
         } else {
@@ -177,8 +185,16 @@ else if ($method === 'DELETE') {
 
         try {
             // Eliminar registros relacionados (las foreign keys con CASCADE lo hacen automáticamente)
-            $conn->query("DELETE FROM itinerario_destinos WHERE id_itinerario = $id");
-            $conn->query("DELETE FROM itinerario_servicios WHERE id_itinerario = $id");
+            $stmt_del_d2 = $conn->prepare("DELETE FROM itinerario_destinos WHERE id_itinerario = ?");
+            $id_clean = (int)$id;
+            $stmt_del_d2->bind_param("i", $id_clean);
+            $stmt_del_d2->execute();
+            $stmt_del_d2->close();
+
+            $stmt_del_s2 = $conn->prepare("DELETE FROM itinerario_servicios WHERE id_itinerario = ?");
+            $stmt_del_s2->bind_param("i", $id_clean);
+            $stmt_del_s2->execute();
+            $stmt_del_s2->close();
 
             // Eliminar itinerario
             $stmt_delete = $conn->prepare("DELETE FROM itinerarios WHERE id = ? AND id_usuario = ?");

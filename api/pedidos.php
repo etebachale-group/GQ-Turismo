@@ -1,6 +1,6 @@
 <?php
 header('Content-Type: application/json');
-require_once '../includes/db_connect.php';
+require_once __DIR__ . '/../includes/db_connect.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -34,8 +34,17 @@ if ($input && isset($input['action'])) {
             $id_itinerario = $input['id_itinerario'] ?? null;
             $fecha_servicio = $input['fecha_servicio'] ?? '';
             $cantidad_personas = $input['cantidad_personas'] ?? 1;
-            $precio_unitario = $input['precio_unitario'] ?? 0.00;
-            $precio_total = $input['precio_total'] ?? 0.00;
+            // H-04: Cálculo de precios en servidor (se ignora cualquier precio enviado por el cliente)
+            require_once __DIR__ . '/../vendor/autoload.php';
+            $cantidad_personas = max(1, (int)($input['cantidad_personas'] ?? 1));
+            $precio_unitario = \App\Domain\Booking\PriceCalculator::getVerifiedPrice(
+                $conn,
+                $tipo_proveedor,
+                $tipo_item,
+                (int)$id_servicio_o_menu,
+                (int)$id_proveedor
+            );
+            $precio_total = $precio_unitario * $cantidad_personas;
             $id_destino = null; // Inicializar id_destino
 
             // Si el tipo_item es guia_destino, necesitamos el id_destino

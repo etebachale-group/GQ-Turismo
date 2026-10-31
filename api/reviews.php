@@ -3,7 +3,7 @@ header('Content-Type: application/json');
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-include '../includes/db_connect.php';
+include __DIR__ . '/../includes/db_connect.php';
 
 $response = ['success' => false, 'message' => ''];
 

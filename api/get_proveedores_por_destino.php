@@ -1,6 +1,6 @@
 <?php
 header('Content-Type: application/json');
-require_once '../includes/db_connect.php';
+require_once __DIR__ . '/../includes/db_connect.php';
 
 $id_destino = $_GET['id_destino'] ?? null;
 $tipo = $_GET['tipo'] ?? 'guia'; // guia, agencia, local

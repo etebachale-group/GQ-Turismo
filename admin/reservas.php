@@ -1,13 +1,7 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Verificar si el usuario ha iniciado sesión y tiene el tipo de usuario correcto
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_type'], ['agencia', 'guia', 'local', 'super_admin'])) {
-    header("Location: login.php");
-    exit();
-}
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../includes/session_security.php';
+require_login(['agencia', 'guia', 'local', 'super_admin']);
 
 include '../includes/db_connect.php';
 

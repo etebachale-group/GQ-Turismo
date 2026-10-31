@@ -3,7 +3,7 @@ header('Content-Type: application/json');
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-require_once '../includes/db_connect.php';
+require_once __DIR__ . '/../includes/db_connect.php';
 
 $response = ['success' => false, 'message' => '', 'data' => []];
 
@@ -92,8 +92,16 @@ if ($conn) {
         $stmt_gallery->close();
 
         // Eliminar registros relacionados
-        $conn->query("DELETE FROM imagenes_destino WHERE id_destino = $destino_id");
-        $conn->query("DELETE FROM itinerario_destinos WHERE id_destino = $destino_id");
+        $stmt_del_img = $conn->prepare("DELETE FROM imagenes_destino WHERE id_destino = ?");
+        $id_dest_clean = (int)$destino_id;
+        $stmt_del_img->bind_param("i", $id_dest_clean);
+        $stmt_del_img->execute();
+        $stmt_del_img->close();
+
+        $stmt_del_itd = $conn->prepare("DELETE FROM itinerario_destinos WHERE id_destino = ?");
+        $stmt_del_itd->bind_param("i", $id_dest_clean);
+        $stmt_del_itd->execute();
+        $stmt_del_itd->close();
 
         // Eliminar destino
         $stmt = $conn->prepare("DELETE FROM destinos WHERE id = ?");

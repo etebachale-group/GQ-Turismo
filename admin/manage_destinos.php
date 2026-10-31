@@ -1,13 +1,7 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Verificar si el usuario ha iniciado sesión y tiene el tipo de usuario correcto
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_type'], ['super_admin'])) {
-    header("Location: login.php"); // Redirigir a la página de login si no está autorizado
-    exit();
-}
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../includes/session_security.php';
+require_login(['super_admin']);
 
 include '../includes/db_connect.php';
 
@@ -18,6 +12,9 @@ $user_type = $_SESSION['user_type'];
 
 // Lógica para añadir/editar destino
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST['form_type'] == 'destino_info') {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $message = "<div class='alert alert-danger'>Error de validación CSRF.</div>";
+    } else {
     $nombre = $_POST['nombre'] ?? '';
     $descripcion = $_POST['descripcion'] ?? '';
     $categoria = $_POST['categoria'] ?? '';
@@ -30,13 +27,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
     // Handle single image upload for main image
     $main_image_name = '';
     if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] == UPLOAD_ERR_OK) {
-        $target_dir = "../assets/img/destinos/";
-        if (!is_dir($target_dir)) { mkdir($target_dir, 0777, true); }
-        $main_image_name = uniqid() . "_" . basename($_FILES['imagen']['name']);
-        $target_file = $target_dir . $main_image_name;
-        if (!move_uploaded_file($_FILES['imagen']['tmp_name'], $target_file)) {
-            $message = "<div class='alert alert-danger'>Error al subir la imagen principal.</div>";
-            $main_image_name = ''; // Reset if upload fails
+        require_once __DIR__ . '/../vendor/autoload.php';
+        $resUpload = \App\Support\FileUpload::uploadImage($_FILES['imagen'], __DIR__ . '/../assets/img/destinos/');
+        if ($resUpload['success']) {
+            $main_image_name = $resUpload['filename'];
+        } else {
+            $message = "<div class='alert alert-danger'>" . htmlspecialchars($resUpload['error']) . "</div>";
+            $main_image_name = '';
         }
     }
 
@@ -71,11 +68,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
         }
         if (isset($stmt)) $stmt->close();
     }
+    }
 }
 
-// Lógica para eliminar destino
-if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
-    $destino_to_delete_id = (int)$_GET['id'];
+// Lógica para eliminar destino (solo POST con CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete' && isset($_POST['id'])) {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $message = "<div class='alert alert-danger'>Error de validación CSRF.</div>";
+    } else {
+        $destino_to_delete_id = (int)$_POST['id'];
     
     // Primero, obtener la imagen principal y las imágenes de galería para eliminarlas
     $stmt = $conn->prepare("SELECT imagen FROM destinos WHERE id = ?");
@@ -132,6 +133,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id']))
     } else {
         $message = "<div class='alert alert-warning'><i class='bi bi-info-circle-fill me-2'></i>El destino no existe.</div>";
     }
+    }
     
     // Redirigir para limpiar la URL
     header("Location: manage_destinos.php");
@@ -146,51 +148,56 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
     if (!$destino_id) {
         $message = "<div class='alert alert-danger'>ID de destino no proporcionado para la galería.</div>";
     } else if (isset($_FILES['gallery_imagen']) && $_FILES['gallery_imagen']['error'] == UPLOAD_ERR_OK) {
-        $target_dir = "../assets/img/destinos/";
-        if (!is_dir($target_dir)) { mkdir($target_dir, 0777, true); }
-        $image_name = uniqid() . "_" . basename($_FILES['gallery_imagen']['name']);
-        $target_file = $target_dir . $image_name;
-
-        if (move_uploaded_file($_FILES['gallery_imagen']['tmp_name'], $target_file)) {
-            $stmt = $conn->prepare("INSERT INTO imagenes_destino (id_destino, ruta_imagen, descripcion) VALUES (?, ?, ?)");
-            $stmt->bind_param("iss", $destino_id, $image_name, $image_description);
-            if ($stmt->execute()) {
-                $message = "<div class='alert alert-success'>Imagen de galería subida con éxito.</div>";
-            } else {
-                $message = "<div class='alert alert-danger'>Error al guardar la imagen de galería: " . $stmt->error . "</div>";
-            }
-            $stmt->close();
+        if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+            $message = "<div class='alert alert-danger'>Error de validación CSRF.</div>";
         } else {
-            $message = "<div class='alert alert-danger'>Error al subir la imagen de galería.</div>";
+            $resUpload = \App\Support\FileUpload::uploadImage($_FILES['gallery_imagen'], __DIR__ . '/../assets/img/destinos/');
+            if ($resUpload['success']) {
+                $image_name = $resUpload['filename'];
+                $stmt = $conn->prepare("INSERT INTO imagenes_destino (id_destino, ruta_imagen, descripcion) VALUES (?, ?, ?)");
+                $stmt->bind_param("iss", $destino_id, $image_name, $image_description);
+                if ($stmt->execute()) {
+                    $message = "<div class='alert alert-success'>Imagen de galería subida con éxito.</div>";
+                } else {
+                    $message = "<div class='alert alert-danger'>Error al guardar la imagen de galería: " . $stmt->error . "</div>";
+                }
+                $stmt->close();
+            } else {
+                $message = "<div class='alert alert-danger'>" . htmlspecialchars($resUpload['error']) . "</div>";
+            }
         }
     } else {
         $message = "<div class='alert alert-danger'>No se seleccionó ninguna imagen para la galería.</div>";
     }
 }
 
-// Lógica para eliminar imagen de galería
-if (isset($_GET['action']) && $_GET['action'] == 'delete_gallery_image' && isset($_GET['id'])) {
-    $image_to_delete_id = $_GET['id'];
-    $stmt = $conn->prepare("SELECT ruta_imagen FROM imagenes_destino WHERE id = ?");
-    $stmt->bind_param("i", $image_to_delete_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $image_data = $result->fetch_assoc();
-    $stmt->close();
-
-    if ($image_data) {
-        $file_path = "../assets/img/destinos/" . $image_data['ruta_imagen'];
-        if (file_exists($file_path)) {
-            unlink($file_path);
-        }
-        $stmt = $conn->prepare("DELETE FROM imagenes_destino WHERE id = ?");
+// Lógica para eliminar imagen de galería (solo POST con CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_gallery_image' && isset($_POST['id'])) {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $message = "<div class='alert alert-danger'>Error de validación CSRF.</div>";
+    } else {
+        $image_to_delete_id = (int)$_POST['id'];
+        $stmt = $conn->prepare("SELECT ruta_imagen FROM imagenes_destino WHERE id = ?");
         $stmt->bind_param("i", $image_to_delete_id);
-        if ($stmt->execute()) {
-            $message = "<div class='alert alert-success'>Imagen de galería eliminada con éxito.</div>";
-        } else {
-            $message = "<div class='alert alert-danger'>Error al eliminar la imagen de galería: " . $stmt->error . "</div>";
-        }
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $image_data = $result->fetch_assoc();
         $stmt->close();
+
+        if ($image_data) {
+            $file_path = "../assets/img/destinos/" . $image_data['ruta_imagen'];
+            if (file_exists($file_path)) {
+                unlink($file_path);
+            }
+            $stmt = $conn->prepare("DELETE FROM imagenes_destino WHERE id = ?");
+            $stmt->bind_param("i", $image_to_delete_id);
+            if ($stmt->execute()) {
+                $message = "<div class='alert alert-success'>Imagen de galería eliminada con éxito.</div>";
+            } else {
+                $message = "<div class='alert alert-danger'>Error al eliminar la imagen de galería: " . $stmt->error . "</div>";
+            }
+            $stmt->close();
+        }
     }
 }
 
@@ -261,6 +268,7 @@ include 'admin_header.php';
     </div>
     <div class="card-body">
         <form action="manage_destinos.php" method="POST" enctype="multipart/form-data">
+            <?= csrf_field() ?>
             <input type="hidden" name="form_type" value="destino_info">
             <input type="hidden" name="destino_id" value="<?= htmlspecialchars($edit_destino['id'] ?? '') ?>">
             
@@ -379,6 +387,7 @@ include 'admin_header.php';
                   method="POST" 
                   enctype="multipart/form-data" 
                   style="margin-bottom: var(--space-xl); padding: var(--space-lg); background: var(--gray-50); border-radius: var(--radius-md);">
+                <?= csrf_field() ?>
                 <input type="hidden" name="form_type" value="add_gallery_image">
                 <input type="hidden" name="gallery_destino_id" value="<?= htmlspecialchars($edit_destino['id']) ?>">
                 
@@ -419,11 +428,14 @@ include 'admin_header.php';
                                 <p style="font-size: 0.875rem; margin-bottom: var(--space-md);">
                                     <?= htmlspecialchars($image['descripcion'] ?: 'Sin descripción') ?>
                                 </p>
-                                <a href="manage_destinos.php?action=delete_gallery_image&id=<?= htmlspecialchars($image['id']) ?>&edit_id=<?= htmlspecialchars($edit_destino['id']) ?>" 
-                                   class="btn btn-sm btn-danger w-100" 
-                                   onclick="return confirm('⚠️ ¿Eliminar esta imagen de la galería?');">
-                                    <i class="bi bi-trash"></i> Eliminar
-                                </a>
+                                <form method="POST" action="manage_destinos.php?edit_id=<?= htmlspecialchars($edit_destino['id']) ?>" onsubmit="return confirm('⚠️ ¿Eliminar esta imagen de la galería?');">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="action" value="delete_gallery_image">
+                                    <input type="hidden" name="id" value="<?= htmlspecialchars($image['id']) ?>">
+                                    <button type="submit" class="btn btn-sm btn-danger w-100">
+                                        <i class="bi bi-trash"></i> Eliminar
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -495,12 +507,14 @@ include 'admin_header.php';
                                                class="btn btn-sm btn-primary" title="Editar">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
-                                            <a href="manage_destinos.php?action=delete&id=<?= htmlspecialchars($destino_item['id']) ?>" 
-                                               class="btn btn-sm btn-danger" 
-                                               onclick="return confirm('⚠️ ¿Eliminar el destino <?= htmlspecialchars($destino_item['nombre']) ?>? Esta acción también eliminará todas sus imágenes de galería.');"
-                                               title="Eliminar">
-                                                <i class="bi bi-trash"></i>
-                                            </a>
+                                            <form method="POST" action="manage_destinos.php" style="display:inline;" onsubmit="return confirm('⚠️ ¿Eliminar el destino <?= htmlspecialchars($destino_item['nombre']) ?>? Esta acción también eliminará todas sus imágenes de galería.');">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="action" value="delete">
+                                                <input type="hidden" name="id" value="<?= htmlspecialchars($destino_item['id']) ?>">
+                                                <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>

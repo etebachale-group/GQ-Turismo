@@ -1,13 +1,7 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Verificar si el usuario ha iniciado sesión y es un super_admin
-if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'super_admin') {
-    header("Location: login.php"); // Redirigir a la página de login si no está autorizado
-    exit();
-}
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../includes/session_security.php';
+require_login(['super_admin']);
 
 include '../includes/db_connect.php';
 
@@ -15,40 +9,49 @@ $message = '';
 
 // Lógica para actualizar tipo de usuario
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'update_type') {
-    $user_id = $_POST['user_id'];
-    $new_type = $_POST['new_type'];
-
-    // Validar el nuevo tipo de usuario
-    $allowed_types = ['turista', 'agencia', 'guia', 'local', 'super_admin'];
-    if (!in_array($new_type, $allowed_types)) {
-        $message = "<div class='alert alert-danger'>Tipo de usuario no válido.</div>";
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $message = "<div class='alert alert-danger'>Error de validación CSRF.</div>";
     } else {
-        $stmt = $conn->prepare("UPDATE usuarios SET tipo_usuario = ? WHERE id = ?");
-        $stmt->bind_param("si", $new_type, $user_id);
-        if ($stmt->execute()) {
-            $message = "<div class='alert alert-success'>Tipo de usuario actualizado con éxito.</div>";
+        $user_id = $_POST['user_id'];
+        $new_type = $_POST['new_type'];
+
+        // Validar el nuevo tipo de usuario
+        $allowed_types = ['turista', 'agencia', 'guia', 'local', 'super_admin'];
+        if (!in_array($new_type, $allowed_types)) {
+            $message = "<div class='alert alert-danger'>Tipo de usuario no válido.</div>";
         } else {
-            $message = "<div class='alert alert-danger'>Error al actualizar el tipo de usuario: " . $stmt->error . "</div>";
+            $stmt = $conn->prepare("UPDATE usuarios SET tipo_usuario = ? WHERE id = ?");
+            $stmt->bind_param("si", $new_type, $user_id);
+            if ($stmt->execute()) {
+                $message = "<div class='alert alert-success'>Tipo de usuario actualizado con éxito.</div>";
+            } else {
+                $message = "<div class='alert alert-danger'>Error al actualizar el tipo de usuario: " . $stmt->error . "</div>";
+            }
+            $stmt->close();
         }
-        $stmt->close();
     }
 }
 
-// Lógica para eliminar usuario
-if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
-    $user_id = $_GET['id'];
-    // Prevenir que el super_admin se elimine a sí mismo
-    if ($user_id == $_SESSION['user_id']) {
-        $message = "<div class='alert alert-danger'>No puedes eliminar tu propia cuenta de super administrador.</div>";
+// H-05: Eliminación de usuarios exclusivamente mediante POST con token CSRF
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete' && isset($_POST['user_id'])) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $message = "<div class='alert alert-danger'>Error de seguridad: Token CSRF inválido o ausente.</div>";
     } else {
-        $stmt = $conn->prepare("DELETE FROM usuarios WHERE id = ?");
-        $stmt->bind_param("i", $user_id);
-        if ($stmt->execute()) {
-            $message = "<div class='alert alert-success'>Usuario eliminado con éxito.</div>";
+        $user_id = (int)$_POST['user_id'];
+        // Prevenir que el super_admin se elimine a sí mismo
+        if ($user_id === (int)$_SESSION['user_id']) {
+            $message = "<div class='alert alert-danger'>No puedes eliminar tu propia cuenta de super administrador.</div>";
         } else {
-            $message = "<div class='alert alert-danger'>Error al eliminar el usuario: " . $stmt->error . "</div>";
+            $stmt = $conn->prepare("DELETE FROM usuarios WHERE id = ?");
+            $stmt->bind_param("i", $user_id);
+            if ($stmt->execute()) {
+                $message = "<div class='alert alert-success'>Usuario eliminado con éxito.</div>";
+            } else {
+                $message = "<div class='alert alert-danger'>Error al eliminar el usuario: " . $stmt->error . "</div>";
+            }
+            $stmt->close();
         }
-        $stmt->close();
     }
 }
 
@@ -181,6 +184,7 @@ include 'admin_header.php';
                                 <td><small><?= htmlspecialchars($user['email']) ?></small></td>
                                 <td>
                                     <form action="manage_users.php" method="POST" style="display:inline;">
+                                        <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="update_type">
                                         <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
                                         <select name="new_type" class="form-select form-select-sm" onchange="if(confirm('¿Cambiar el tipo de usuario?')) this.form.submit();" style="width: auto; display: inline-block;">
@@ -195,11 +199,14 @@ include 'admin_header.php';
                                 <td><small><?= date('d/m/Y', strtotime($user['fecha_registro'])) ?></small></td>
                                 <td>
                                     <?php if ($user['id'] != $_SESSION['user_id']): ?>
-                                        <a href="manage_users.php?action=delete&id=<?= $user['id'] ?>" 
-                                           class="btn btn-sm btn-danger" 
-                                           onclick="return confirm('⚠️ ¿Estás seguro de eliminar a <?= htmlspecialchars($user['nombre']) ?>? Esta acción no se puede deshacer.');">
-                                            <i class="bi bi-trash"></i> Eliminar
-                                        </a>
+                                        <form method="POST" action="manage_users.php" style="display:inline;" onsubmit="return confirm('⚠️ ¿Estás seguro de eliminar a <?= htmlspecialchars($user['nombre']) ?>? Esta acción no se puede deshacer.');">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                <i class="bi bi-trash"></i> Eliminar
+                                            </button>
+                                        </form>
                                     <?php else: ?>
                                         <button class="btn btn-sm btn-outline-secondary" disabled title="No puedes eliminar tu propia cuenta">
                                             <i class="bi bi-shield-lock"></i> Tu cuenta

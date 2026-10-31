@@ -1,12 +1,9 @@
 <?php
-session_start();
-require_once '../includes/db_connect.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../includes/session_security.php';
+require_login(['guia', 'agencia', 'local']);
 
-// Verificar autenticación
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_type'], ['guia', 'agencia', 'local'])) {
-    header("Location: ../index.php");
-    exit();
-}
+require_once '../includes/db_connect.php';
 
 $user_id = $_SESSION['user_id'];
 $user_type = $_SESSION['user_type'];

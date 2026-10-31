@@ -1,11 +1,9 @@
 <?php
-require_once '../includes/header.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../includes/session_security.php';
+require_login(['agencia', 'guia', 'local']);
 
-// Verificar que sea proveedor
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_type'], ['agencia', 'guia', 'local'])) {
-    header('Location: ../index.php');
-    exit;
-}
+require_once '../includes/header.php';
 
 $user_id = $_SESSION['user_id'];
 $user_type = $_SESSION['user_type'];

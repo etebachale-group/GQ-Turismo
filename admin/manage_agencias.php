@@ -1,13 +1,7 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Verificar si el usuario ha iniciado sesión y tiene el tipo de usuario correcto
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_type'], ['agencia', 'super_admin'])) {
-    header("Location: login.php"); // Redirigir a la página de login si no está autorizado
-    exit();
-}
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../includes/session_security.php';
+require_login(['agencia', 'super_admin']);
 
 include '../includes/db_connect.php';
 
@@ -75,13 +69,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
             if ($user_type === 'super_admin' || ($user_type === 'agencia' && $posted_agency_id == $agency_id)) {
                 $profile_image_name = '';
                 if (isset($_FILES['imagen_perfil']) && $_FILES['imagen_perfil']['error'] == UPLOAD_ERR_OK) {
-                    $target_dir = "../assets/img/agencias/";
-                    if (!is_dir($target_dir)) { mkdir($target_dir, 0777, true); }
-                    $profile_image_name = uniqid() . "_" . basename($_FILES['imagen_perfil']['name']);
-                    $target_file = $target_dir . $profile_image_name;
-                    if (!move_uploaded_file($_FILES['imagen_perfil']['tmp_name'], $target_file)) {
-                        $message = "<div class='alert alert-danger'>Error al subir la imagen de perfil.</div>";
-                        $profile_image_name = ''; // Reset if upload fails
+                    $resUpload = \App\Support\FileUpload::uploadImage($_FILES['imagen_perfil'], __DIR__ . '/../assets/img/agencias/');
+                    if ($resUpload['success']) {
+                        $profile_image_name = $resUpload['filename'];
+                    } else {
+                        $message = "<div class='alert alert-danger'>" . htmlspecialchars($resUpload['error']) . "</div>";
+                        $profile_image_name = '';
                     }
                 }
 
@@ -168,28 +161,50 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
     }
 }
 
-// Lógica para eliminar servicio de agencia
-if (isset($_GET['action']) && $_GET['action'] == 'delete_service' && isset($_GET['id'])) {
-    $service_to_delete_id = $_GET['id'];
-    if ($user_type === 'super_admin') {
-        $stmt = $conn->prepare("DELETE FROM servicios_agencia WHERE id = ?");
-        $stmt->bind_param("i", $service_to_delete_id);
-    } else if ($user_type === 'agencia' && $agency_id) {
-        $stmt = $conn->prepare("DELETE FROM servicios_agencia WHERE id = ? AND id_agencia = ?");
-        $stmt->bind_param("ii", $service_to_delete_id, $agency_id);
-    }
-    else {
-        $message = "<div class='alert alert-danger'>No tienes permiso para eliminar este servicio.</div>";
-        $stmt = null;
-    }
-
-    if ($stmt) {
+// Lógica para eliminar agencia (super_admin, solo POST con CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete' && isset($_POST['id'])) {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $message = "<div class='alert alert-danger'>Error de validación CSRF.</div>";
+    } else if ($user_type === 'super_admin') {
+        $agency_del_id = (int)$_POST['id'];
+        $stmt = $conn->prepare("DELETE FROM agencias WHERE id = ?");
+        $stmt->bind_param("i", $agency_del_id);
         if ($stmt->execute()) {
-            $message = "<div class='alert alert-success'>Servicio eliminado con éxito.</div>";
+            $message = "<div class='alert alert-success'>Agencia eliminada con éxito.</div>";
         } else {
-            $message = "<div class='alert alert-danger'>Error al eliminar el servicio: " . $stmt->error . "</div>";
+            $message = "<div class='alert alert-danger'>Error al eliminar agencia: " . $stmt->error . "</div>";
         }
         $stmt->close();
+    } else {
+        $message = "<div class='alert alert-danger'>No tienes permiso para eliminar agencias.</div>";
+    }
+}
+
+// Lógica para eliminar servicio de agencia (solo POST con CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_service' && isset($_POST['id'])) {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $message = "<div class='alert alert-danger'>Error de validación CSRF.</div>";
+    } else {
+        $service_to_delete_id = (int)$_POST['id'];
+        if ($user_type === 'super_admin') {
+            $stmt = $conn->prepare("DELETE FROM servicios_agencia WHERE id = ?");
+            $stmt->bind_param("i", $service_to_delete_id);
+        } else if ($user_type === 'agencia' && $agency_id) {
+            $stmt = $conn->prepare("DELETE FROM servicios_agencia WHERE id = ? AND id_agencia = ?");
+            $stmt->bind_param("ii", $service_to_delete_id, $agency_id);
+        } else {
+            $message = "<div class='alert alert-danger'>No tienes permiso para eliminar este servicio.</div>";
+            $stmt = null;
+        }
+
+        if ($stmt) {
+            if ($stmt->execute()) {
+                $message = "<div class='alert alert-success'>Servicio eliminado con éxito.</div>";
+            } else {
+                $message = "<div class='alert alert-danger'>Error al eliminar el servicio: " . $stmt->error . "</div>";
+            }
+            $stmt->close();
+        }
     }
 }
 
@@ -229,28 +244,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
     }
 }
 
-// Lógica para eliminar menú de agencia
-if (isset($_GET['action']) && $_GET['action'] == 'delete_menu' && isset($_GET['id'])) {
-    $menu_to_delete_id = $_GET['id'];
-    if ($user_type === 'super_admin') {
-        $stmt = $conn->prepare("DELETE FROM menus_agencia WHERE id = ?");
-        $stmt->bind_param("i", $menu_to_delete_id);
-    } else if ($user_type === 'agencia' && $agency_id) {
-        $stmt = $conn->prepare("DELETE FROM menus_agencia WHERE id = ? AND id_agencia = ?");
-        $stmt->bind_param("ii", $menu_to_delete_id, $agency_id);
-    }
-    else {
-        $message = "<div class='alert alert-danger'>No tienes permiso para eliminar este menú.</div>";
-        $stmt = null;
-    }
-
-    if ($stmt) {
-        if ($stmt->execute()) {
-            $message = "<div class='alert alert-success'>Menú eliminado con éxito.</div>";
+// Lógica para eliminar menú de agencia (solo POST con CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_menu' && isset($_POST['id'])) {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $message = "<div class='alert alert-danger'>Error de validación CSRF.</div>";
+    } else {
+        $menu_to_delete_id = (int)$_POST['id'];
+        if ($user_type === 'super_admin') {
+            $stmt = $conn->prepare("DELETE FROM menus_agencia WHERE id = ?");
+            $stmt->bind_param("i", $menu_to_delete_id);
+        } else if ($user_type === 'agencia' && $agency_id) {
+            $stmt = $conn->prepare("DELETE FROM menus_agencia WHERE id = ? AND id_agencia = ?");
+            $stmt->bind_param("ii", $menu_to_delete_id, $agency_id);
         } else {
-            $message = "<div class='alert alert-danger'>Error al eliminar el menú: " . $stmt->error . "</div>";
+            $message = "<div class='alert alert-danger'>No tienes permiso para eliminar este menú.</div>";
+            $stmt = null;
         }
-        $stmt->close();
+
+        if ($stmt) {
+            if ($stmt->execute()) {
+                $message = "<div class='alert alert-success'>Menú eliminado con éxito.</div>";
+            } else {
+                $message = "<div class='alert alert-danger'>Error al eliminar el menú: " . $stmt->error . "</div>";
+            }
+            $stmt->close();
+        }
     }
 }
 
@@ -409,27 +427,31 @@ if ($user_type === 'super_admin') {
             }
         }
 
-        // Lógica para eliminar descuento
-        if (isset($_GET['action']) && $_GET['action'] == 'delete_discount' && isset($_GET['id'])) {
-            $discount_to_delete_id = $_GET['id'];
-            if ($user_type === 'super_admin') {
-                $stmt = $conn->prepare("DELETE FROM descuentos WHERE id = ?");
-                $stmt->bind_param("i", $discount_to_delete_id);
-            } else if ($user_type === 'agencia' && $agency_id) {
-                $stmt = $conn->prepare("DELETE FROM descuentos WHERE id = ? AND agency_id = ?");
-                $stmt->bind_param("ii", $discount_to_delete_id, $agency_id);
+        // Lógica para eliminar descuento (solo POST con CSRF)
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_discount' && isset($_POST['id'])) {
+            if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+                $message = "<div class='alert alert-danger'>Error de validación CSRF.</div>";
             } else {
-                $message = "<div class='alert alert-danger'>No tienes permiso para eliminar este descuento.</div>";
-                $stmt = null;
-            }
-
-            if ($stmt) {
-                if ($stmt->execute()) {
-                    $message = "<div class='alert alert-success'>Descuento eliminado con éxito.</div>";
+                $discount_to_delete_id = (int)$_POST['id'];
+                if ($user_type === 'super_admin') {
+                    $stmt = $conn->prepare("DELETE FROM descuentos WHERE id = ?");
+                    $stmt->bind_param("i", $discount_to_delete_id);
+                } else if ($user_type === 'agencia' && $agency_id) {
+                    $stmt = $conn->prepare("DELETE FROM descuentos WHERE id = ? AND agency_id = ?");
+                    $stmt->bind_param("ii", $discount_to_delete_id, $agency_id);
                 } else {
-                    $message = "<div class='alert alert-danger'>Error al eliminar el descuento: " . $stmt->error . "</div>";
+                    $message = "<div class='alert alert-danger'>No tienes permiso para eliminar este descuento.</div>";
+                    $stmt = null;
                 }
-                $stmt->close();
+
+                if ($stmt) {
+                    if ($stmt->execute()) {
+                        $message = "<div class='alert alert-success'>Descuento eliminado con éxito.</div>";
+                    } else {
+                        $message = "<div class='alert alert-danger'>Error al eliminar el descuento: " . $stmt->error . "</div>";
+                    }
+                    $stmt->close();
+                }
             }
         }
 
@@ -468,7 +490,8 @@ include 'admin_header.php';
                     <?php if (!$edit_agency): ?>
                         <h2>Registrar tu Agencia</h2>
                         <form action="manage_agencias.php" method="POST">
-                            <input type="hidden" name="form_type" value="agency_info">
+<?= csrf_field() ?>
+<input type="hidden" name="form_type" value="agency_info">
                             <div class="mb-3">
                                 <label for="nombre_agencia" class="form-label">Nombre de la Agencia</label>
                                 <input type="text" class="form-control" id="nombre_agencia" name="nombre_agencia" required>
@@ -490,7 +513,8 @@ include 'admin_header.php';
                     <?php else: // Agencia ya registrada, mostrar formulario de edición y gestión de servicios/menús ?>
                         <h2>Editar Información de Agencia</h2>
                         <form action="manage_agencias.php" method="POST" enctype="multipart/form-data">
-                            <input type="hidden" name="form_type" value="agency_info">
+<?= csrf_field() ?>
+<input type="hidden" name="form_type" value="agency_info">
                             <input type="hidden" name="agency_id" value="<?= htmlspecialchars($edit_agency['id']) ?>">
                             <div class="mb-3">
                                 <label for="nombre_agencia" class="form-label">Nombre de la Agencia</label>
@@ -525,7 +549,8 @@ include 'admin_header.php';
                         <h3 class="mt-5">Gestionar Servicios</h3>
                         <?php if ($agency_id): ?>
                             <form action="manage_agencias.php" method="POST" class="mb-4">
-                                <input type="hidden" name="form_type" value="add_edit_service">
+<?= csrf_field() ?>
+<input type="hidden" name="form_type" value="add_edit_service">
                                 <input type="hidden" name="service_id" value="">
                                 <div class="row g-2">
                                     <div class="col-md-4">
@@ -564,7 +589,12 @@ include 'admin_header.php';
                                                     <td><?= htmlspecialchars(number_format($service['precio'], 2)) ?> €</td>
                                                     <td>
                                                         <!-- Implementar edición de servicio si es necesario -->
-                                                        <a href="manage_agencias.php?action=delete_service&id=<?= htmlspecialchars($service['id']) ?>" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar este servicio?');">Eliminar</a>
+                                                        <form method="POST" action="manage_agencias.php" style="display:inline;" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este servicio?');">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="delete_service">
+    <input type="hidden" name="id" value="<?= htmlspecialchars($service['id']) ?>">
+    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+</form>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
@@ -579,7 +609,8 @@ include 'admin_header.php';
 
                             <h3 class="mt-5">Gestionar Menús/Paquetes</h3>
                             <form action="manage_agencias.php" method="POST" class="mb-4">
-                                <input type="hidden" name="form_type" value="add_edit_menu">
+<?= csrf_field() ?>
+<input type="hidden" name="form_type" value="add_edit_menu">
                                 <input type="hidden" name="menu_id" value="">
                                 <div class="row g-2">
                                     <div class="col-md-4">
@@ -618,7 +649,12 @@ include 'admin_header.php';
                                                     <td><?= htmlspecialchars(number_format($menu['precio_total'], 2)) ?> €</td>
                                                     <td>
                                                         <!-- Implementar edición de menú si es necesario -->
-                                                        <a href="manage_agencias.php?action=delete_menu&id=<?= htmlspecialchars($menu['id']) ?>" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar este menú?');">Eliminar</a>
+                                                        <form method="POST" action="manage_agencias.php" style="display:inline;" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este menú?');">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="delete_menu">
+    <input type="hidden" name="id" value="<?= htmlspecialchars($menu['id']) ?>">
+    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+</form>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
@@ -694,7 +730,8 @@ include 'admin_header.php';
                         <h3 class="mt-5">Gestionar Descuentos</h3>
                         <?php if ($agency_id): ?>
                             <form action="manage_agencias.php" method="POST" class="mb-4">
-                                <input type="hidden" name="form_type" value="add_edit_discount">
+<?= csrf_field() ?>
+<input type="hidden" name="form_type" value="add_edit_discount">
                                 <input type="hidden" name="discount_id" value="">
                                 <div class="row g-2">
                                     <div class="col-md-3">
@@ -740,7 +777,12 @@ include 'admin_header.php';
                                                     <td><?= $discount['is_active'] ? 'Sí' : 'No' ?></td>
                                                     <td>
                                                         <!-- Implementar edición de descuento si es necesario -->
-                                                        <a href="manage_agencias.php?action=delete_discount&id=<?= htmlspecialchars($discount['id']) ?>" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar este descuento?');">Eliminar</a>
+                                                        <form method="POST" action="manage_agencias.php" style="display:inline;" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este descuento?');">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="delete_discount">
+    <input type="hidden" name="id" value="<?= htmlspecialchars($discount['id']) ?>">
+    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+</form>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
@@ -786,7 +828,8 @@ include 'admin_header.php';
                                                     <td><?= htmlspecialchars(number_format($order['precio_total'], 2)) ?> €</td>
                                                     <td>
                                                         <form action="manage_agencias.php" method="POST" style="display:inline;">
-                                                            <input type="hidden" name="form_type" value="update_order_status">
+<?= csrf_field() ?>
+<input type="hidden" name="form_type" value="update_order_status">
                                                             <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
                                                             <select name="new_status" class="form-select form-select-sm" onchange="this.form.submit()">
                                                                 <option value="pendiente" <?= ($order['estado'] == 'pendiente') ? 'selected' : '' ?>>Pendiente</option>
@@ -838,7 +881,12 @@ include 'admin_header.php';
                                             <td><?php echo htmlspecialchars($agency['contacto_email']) ?></td>
                                             <td><?php echo htmlspecialchars($agency['contacto_telefono']) ?></td>
                                             <td>
-                                                <a href="manage_agencias.php?action=delete&id=<?php echo htmlspecialchars($agency['id']) ?>" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar esta agencia?');">Eliminar</a>
+                                                <form method="POST" action="manage_agencias.php" style="display:inline;" onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta agencia?');">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="delete">
+    <input type="hidden" name="id" value="<?php echo htmlspecialchars($agency['id']) ?>">
+    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+</form>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>

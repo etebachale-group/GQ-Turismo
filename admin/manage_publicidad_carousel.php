@@ -1,13 +1,7 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Verificar si el usuario ha iniciado sesión y es un super_admin
-if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'super_admin') {
-    header("Location: login.php");
-    exit();
-}
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../includes/session_security.php';
+require_login(['super_admin']);
 
 include '../includes/db_connect.php';
 
@@ -16,6 +10,9 @@ $user_type = $_SESSION['user_type'];
 
 // Lógica para añadir/editar publicidad
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST['form_type'] == 'publicidad') {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $message = "<div class='alert alert-danger'>Error de validación CSRF.</div>";
+    } else {
     $titulo = $_POST['titulo'] ?? '';
     $descripcion = $_POST['descripcion'] ?? '';
     $enlace = $_POST['enlace'] ?? '';
@@ -26,14 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
 
     $imagen_name = null;
     if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] == UPLOAD_ERR_OK) {
-        $target_dir = "../assets/img/publicidad/";
-        if (!is_dir($target_dir)) {
-            mkdir($target_dir, 0777, true);
-        }
-        $imagen_name = uniqid() . "_" . basename($_FILES['imagen']['name']);
-        $target_file = $target_dir . $imagen_name;
-        if (!move_uploaded_file($_FILES['imagen']['tmp_name'], $target_file)) {
-            $message = "<div class='alert alert-danger'>Error al subir la imagen de publicidad.</div>";
+        $resUpload = \App\Support\FileUpload::uploadImage($_FILES['imagen'], __DIR__ . '/../assets/img/publicidad/');
+        if ($resUpload['success']) {
+            $imagen_name = $resUpload['filename'];
+        } else {
+            $message = "<div class='alert alert-danger'>" . htmlspecialchars($resUpload['error']) . "</div>";
             $imagen_name = null;
         }
     }
@@ -67,23 +61,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
             $stmt->close();
         }
     }
+    }
 }
 
-// Lógica para eliminar publicidad
-if (isset($_GET['action']) && $_GET['action'] == 'delete_publicidad' && isset($_GET['id'])) {
-    $publicidad_id = $_GET['id'];
-    $stmt = $conn->prepare("DELETE FROM publicidades WHERE id = ?");
-    $stmt->bind_param("i", $publicidad_id);
-    if ($stmt->execute()) {
-        $message = "<div class='alert alert-success'><i class='bi bi-check-circle me-2'></i>Publicidad eliminada con éxito.</div>";
+// Lógica para eliminar publicidad (solo POST con CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_publicidad' && isset($_POST['id'])) {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $message = "<div class='alert alert-danger'>Error de validación CSRF.</div>";
     } else {
-        $message = "<div class='alert alert-danger'><i class='bi bi-exclamation-triangle me-2'></i>Error al eliminar publicidad: " . $stmt->error . "</div>";
+        $publicidad_id = (int)$_POST['id'];
+        $stmt = $conn->prepare("DELETE FROM publicidades WHERE id = ?");
+        $stmt->bind_param("i", $publicidad_id);
+        if ($stmt->execute()) {
+            $message = "<div class='alert alert-success'><i class='bi bi-check-circle me-2'></i>Publicidad eliminada con éxito.</div>";
+        } else {
+            $message = "<div class='alert alert-danger'><i class='bi bi-exclamation-triangle me-2'></i>Error al eliminar publicidad: " . $stmt->error . "</div>";
+        }
+        $stmt->close();
     }
-    $stmt->close();
 }
 
 // Lógica para añadir/editar carousel
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST['form_type'] == 'carousel') {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $message = "<div class='alert alert-danger'>Error de validación CSRF.</div>";
+    } else {
     $titulo = $_POST['titulo'] ?? '';
     $descripcion = $_POST['descripcion'] ?? '';
     $enlace = $_POST['link'] ?? '';
@@ -93,14 +95,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
 
     $imagen_name = null;
     if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] == UPLOAD_ERR_OK) {
-        $target_dir = "../assets/img/carouseles/";
-        if (!is_dir($target_dir)) {
-            mkdir($target_dir, 0777, true);
-        }
-        $imagen_name = uniqid() . "_" . basename($_FILES['imagen']['name']);
-        $target_file = $target_dir . $imagen_name;
-        if (!move_uploaded_file($_FILES['imagen']['tmp_name'], $target_file)) {
-            $message = "<div class='alert alert-danger'>Error al subir la imagen del carousel.</div>";
+        $resUpload = \App\Support\FileUpload::uploadImage($_FILES['imagen'], __DIR__ . '/../assets/img/carouseles/');
+        if ($resUpload['success']) {
+            $imagen_name = $resUpload['filename'];
+        } else {
+            $message = "<div class='alert alert-danger'>" . htmlspecialchars($resUpload['error']) . "</div>";
             $imagen_name = null;
         }
     }
@@ -134,19 +133,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
             $stmt->close();
         }
     }
+    }
 }
 
-// Lógica para eliminar carousel
-if (isset($_GET['action']) && $_GET['action'] == 'delete_carousel' && isset($_GET['id'])) {
-    $carousel_id = $_GET['id'];
-    $stmt = $conn->prepare("DELETE FROM publicidad_carousel WHERE id = ?");
-    $stmt->bind_param("i", $carousel_id);
-    if ($stmt->execute()) {
-        $message = "<div class='alert alert-success'><i class='bi bi-check-circle me-2'></i>Carousel eliminado con éxito.</div>";
+// Lógica para eliminar carousel (solo POST con CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_carousel' && isset($_POST['id'])) {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $message = "<div class='alert alert-danger'>Error de validación CSRF.</div>";
     } else {
-        $message = "<div class='alert alert-danger'><i class='bi bi-exclamation-triangle me-2'></i>Error al eliminar carousel: " . $stmt->error . "</div>";
+        $carousel_id = (int)$_POST['id'];
+        $stmt = $conn->prepare("DELETE FROM publicidad_carousel WHERE id = ?");
+        $stmt->bind_param("i", $carousel_id);
+        if ($stmt->execute()) {
+            $message = "<div class='alert alert-success'><i class='bi bi-check-circle me-2'></i>Carousel eliminado con éxito.</div>";
+        } else {
+            $message = "<div class='alert alert-danger'><i class='bi bi-exclamation-triangle me-2'></i>Error al eliminar carousel: " . $stmt->error . "</div>";
+        }
+        $stmt->close();
     }
-    $stmt->close();
 }
 
 // Obtener todas las publicidades
@@ -505,9 +509,14 @@ include 'admin_header.php';
                             <button class="btn-modern btn-success-gradient" onclick="editPublicidad(<?= $pub['id'] ?>)">
                                 <i class="bi bi-pencil"></i> Editar
                             </button>
-                            <a href="?action=delete_publicidad&id=<?= $pub['id'] ?>" class="btn-modern btn-danger-gradient" onclick="return confirm('¿Eliminar esta publicidad?')">
-                                <i class="bi bi-trash"></i> Eliminar
-                            </a>
+                            <form method="POST" action="manage_publicidad_carousel.php" style="display:inline;" onsubmit="return confirm('¿Eliminar esta publicidad?');">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="delete_publicidad">
+    <input type="hidden" name="id" value="<?= (int)$pub['id'] ?>">
+    <button type="submit" class="btn-modern btn-danger-gradient">
+        <i class="bi bi-trash"></i> Eliminar
+    </button>
+</form>
                         </div>
                     </div>
                 </div>
@@ -576,9 +585,14 @@ include 'admin_header.php';
                             <button class="btn-modern btn-success-gradient" onclick="editCarousel(<?= $car['id'] ?>)">
                                 <i class="bi bi-pencil"></i> Editar
                             </button>
-                            <a href="?action=delete_carousel&id=<?= $car['id'] ?>" class="btn-modern btn-danger-gradient" onclick="return confirm('¿Eliminar este slide?')">
-                                <i class="bi bi-trash"></i> Eliminar
-                            </a>
+                            <form method="POST" action="manage_publicidad_carousel.php" style="display:inline;" onsubmit="return confirm('¿Eliminar este slide?');">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="delete_carousel">
+    <input type="hidden" name="id" value="<?= (int)$car['id'] ?>">
+    <button type="submit" class="btn-modern btn-danger-gradient">
+        <i class="bi bi-trash"></i> Eliminar
+    </button>
+</form>
                         </div>
                     </div>
                 </div>
@@ -600,6 +614,7 @@ include 'admin_header.php';
             </div>
             <div class="modal-body p-4">
                 <form action="" method="POST" enctype="multipart/form-data" class="form-modern">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="form_type" value="publicidad">
                     <input type="hidden" name="publicidad_id" id="publicidad_id">
                     
@@ -685,6 +700,7 @@ include 'admin_header.php';
             </div>
             <div class="modal-body p-4">
                 <form action="" method="POST" enctype="multipart/form-data" class="form-modern">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="form_type" value="carousel">
                     <input type="hidden" name="carousel_id" id="carousel_id">
                     

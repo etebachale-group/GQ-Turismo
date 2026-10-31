@@ -1,7 +1,7 @@
 <?php
 session_start();
 header('Content-Type: application/json');
-require_once '../includes/db_connect.php';
+require_once __DIR__ . '/../includes/db_connect.php';
 
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'No autorizado']);
@@ -67,9 +67,17 @@ if ($action === 'update_task_status') {
         
         // Actualizar estado del itinerario si todas las tareas están completadas
         if ($progreso == 100) {
-            $conn->query("UPDATE itinerarios SET estado_itinerario = 'completado' WHERE id = $id_itinerario");
+            $stmt_upd_it1 = $conn->prepare("UPDATE itinerarios SET estado_itinerario = 'completado' WHERE id = ?");
+            $id_iti_clean = (int)$id_itinerario;
+            $stmt_upd_it1->bind_param("i", $id_iti_clean);
+            $stmt_upd_it1->execute();
+            $stmt_upd_it1->close();
         } else if ($progreso > 0 && $progreso < 100) {
-            $conn->query("UPDATE itinerarios SET estado_itinerario = 'en_curso' WHERE id = $id_itinerario");
+            $stmt_upd_it2 = $conn->prepare("UPDATE itinerarios SET estado_itinerario = 'en_curso' WHERE id = ?");
+            $id_iti_clean = (int)$id_itinerario;
+            $stmt_upd_it2->bind_param("i", $id_iti_clean);
+            $stmt_upd_it2->execute();
+            $stmt_upd_it2->close();
         }
         
         echo json_encode([

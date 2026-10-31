@@ -1,20 +1,12 @@
 <?php
-session_start();
-require_once '../includes/db_connect.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../includes/session_security.php';
+require_login(['guia', 'agencia', 'local']);
 
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../index.php");
-    exit();
-}
+require_once '../includes/db_connect.php';
 
 $user_id = $_SESSION['user_id'];
 $user_type = $_SESSION['user_type'];
-
-// Solo proveedores pueden acceder
-if (!in_array($user_type, ['guia', 'agencia', 'local'])) {
-    header("Location: ../index.php");
-    exit();
-}
 
 // Obtener pedidos pendientes de confirmación
 $sql = "SELECT cs.*, 

@@ -75,7 +75,7 @@ function get_user_ip() {
     } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
         return $_SERVER['HTTP_X_FORWARDED_FOR'];
     } else {
-        return $_SERVER['REMOTE_ADDR'];
+        return $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
     }
 }
 
@@ -85,7 +85,8 @@ function get_user_ip() {
  */
 function get_login_url() {
     // Detectar si estamos en carpeta admin
-    if (strpos($_SERVER['REQUEST_URI'], '/admin/') !== false) {
+    $uri = $_SERVER['REQUEST_URI'] ?? '';
+    if (strpos($uri, '/admin/') !== false) {
         return '/GQ-Turismo/admin/login.php';
     }
     return '/GQ-Turismo/index.php';

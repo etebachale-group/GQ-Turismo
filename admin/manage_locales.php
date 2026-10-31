@@ -1,13 +1,7 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Verificar si el usuario ha iniciado sesión y tiene el tipo de usuario correcto
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_type'], ['local', 'super_admin'])) {
-    header("Location: login.php"); // Redirigir a la página de login si no está autorizado
-    exit();
-}
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../includes/session_security.php';
+require_login(['local', 'super_admin']);
 
 include '../includes/db_connect.php';
 
@@ -77,13 +71,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
             if ($user_type === 'super_admin' || ($user_type === 'local' && $posted_local_id == $local_id)) {
                 $profile_image_name = '';
                 if (isset($_FILES['imagen_perfil']) && $_FILES['imagen_perfil']['error'] == UPLOAD_ERR_OK) {
-                    $target_dir = "../assets/img/locales/";
-                    if (!is_dir($target_dir)) { mkdir($target_dir, 0777, true); }
-                    $profile_image_name = uniqid() . "_" . basename($_FILES['imagen_perfil']['name']);
-                    $target_file = $target_dir . $profile_image_name;
-                    if (!move_uploaded_file($_FILES['imagen_perfil']['tmp_name'], $target_file)) {
-                        $message = "<div class='alert alert-danger'>Error al subir la imagen de perfil.</div>";
-                        $profile_image_name = ''; // Reset if upload fails
+                    $resUpload = \App\Support\FileUpload::uploadImage($_FILES['imagen_perfil'], __DIR__ . '/../assets/img/locales/');
+                    if ($resUpload['success']) {
+                        $profile_image_name = $resUpload['filename'];
+                    } else {
+                        $message = "<div class='alert alert-danger'>" . htmlspecialchars($resUpload['error']) . "</div>";
+                        $profile_image_name = '';
                     }
                 }
 
@@ -147,36 +140,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
         }
 
         if ($image_file && $image_file['error'] == UPLOAD_ERR_OK) {
-            $image_name = uniqid() . "_" . basename($image_file['name']);
-            $target_file = $target_dir . $image_name;
-            $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
-
-            // Validar tipo de archivo
-            $allowed_types = ['jpg', 'jpeg', 'png', 'gif'];
-            if (!in_array($imageFileType, $allowed_types)) {
-                $message = "<div class='alert alert-danger'>Solo se permiten archivos JPG, JPEG, PNG y GIF.</div>";
-            } else if ($image_file['size'] > 5000000) { // 5MB
-                $message = "<div class='alert alert-danger'>La imagen es demasiado grande.</div>";
-            } else {
-                if (move_uploaded_file($image_file['tmp_name'], $target_file)) {
-                    if ($image_id) {
-                        // Editar imagen existente (solo descripción, la imagen se reemplaza si se sube una nueva)
-                        $stmt = $conn->prepare("UPDATE imagenes_local SET ruta_imagen = ?, descripcion = ? WHERE id = ? AND id_local = ?");
-                        $stmt->bind_param("ssii", $image_name, $image_description, $image_id, $local_id);
-                    } else {
-                        // Añadir nueva imagen
-                        $stmt = $conn->prepare("INSERT INTO imagenes_local (id_local, ruta_imagen, descripcion) VALUES (?, ?, ?)");
-                        $stmt->bind_param("iss", $local_id, $image_name, $image_description);
-                    }
-                    if ($stmt->execute()) {
-                        $message = "<div class='alert alert-success'>Imagen guardada con éxito.</div>";
-                    } else {
-                        $message = "<div class='alert alert-danger'>Error al guardar la imagen: " . $stmt->error . "</div>";
-                    }
-                    $stmt->close();
+            $resUpload = \App\Support\FileUpload::uploadImage($image_file, __DIR__ . '/../assets/img/locales/');
+            if ($resUpload['success']) {
+                $image_name = $resUpload['filename'];
+                if ($image_id) {
+                    $stmt = $conn->prepare("UPDATE imagenes_local SET ruta_imagen = ?, descripcion = ? WHERE id = ? AND id_local = ?");
+                    $stmt->bind_param("ssii", $image_name, $image_description, $image_id, $local_id);
                 } else {
-                    $message = "<div class='alert alert-danger'>Error al subir la imagen.</div>";
+                    $stmt = $conn->prepare("INSERT INTO imagenes_local (id_local, ruta_imagen, descripcion) VALUES (?, ?, ?)");
+                    $stmt->bind_param("iss", $local_id, $image_name, $image_description);
                 }
+                if ($stmt->execute()) {
+                    $message = "<div class='alert alert-success'>Imagen guardada con éxito.</div>";
+                } else {
+                    $message = "<div class='alert alert-danger'>Error al guardar la imagen: " . $stmt->error . "</div>";
+                }
+                $stmt->close();
+            } else {
+                $message = "<div class='alert alert-danger'>" . htmlspecialchars($resUpload['error']) . "</div>";
             }
         } else if ($image_id && !$image_file) {
             // Solo actualizar descripción si no se sube nueva imagen
@@ -196,55 +177,78 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
     }
 }
 
-// Lógica para eliminar imagen de local
-if (isset($_GET['action']) && $_GET['action'] == 'delete_image' && isset($_GET['id'])) {
-    $image_to_delete_id = $_GET['id'];
-    if ($user_type === 'super_admin') {
-        $stmt = $conn->prepare("SELECT ruta_imagen FROM imagenes_local WHERE id = ?");
-        $stmt->bind_param("i", $image_to_delete_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $image_data = $result->fetch_assoc();
-        $stmt->close();
-
-        if ($image_data) {
-            $file_path = "../assets/img/locales/" . $image_data['ruta_imagen'];
-            if (file_exists($file_path)) {
-                unlink($file_path);
-            }
-            $stmt = $conn->prepare("DELETE FROM imagenes_local WHERE id = ?");
-            $stmt->bind_param("i", $image_to_delete_id);
-            if ($stmt->execute()) {
-                $message = "<div class='alert alert-success'>Imagen eliminada con éxito.</div>";
-            } else {
-                $message = "<div class='alert alert-danger'>Error al eliminar la imagen: " . $stmt->error . "</div>";
-            }
-            $stmt->close();
+// Lógica para eliminar local (super_admin, solo POST con CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete' && isset($_POST['id'])) {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $message = "<div class='alert alert-danger'>Error de validación CSRF.</div>";
+    } else if ($user_type === 'super_admin') {
+        $local_del_id = (int)$_POST['id'];
+        $stmt = $conn->prepare("DELETE FROM lugares_locales WHERE id = ?");
+        $stmt->bind_param("i", $local_del_id);
+        if ($stmt->execute()) {
+            $message = "<div class='alert alert-success'>Lugar/Local eliminado con éxito.</div>";
+        } else {
+            $message = "<div class='alert alert-danger'>Error al eliminar local: " . $stmt->error . "</div>";
         }
-    } else if ($user_type === 'local' && $local_id) {
-        $stmt = $conn->prepare("SELECT ruta_imagen FROM imagenes_local WHERE id = ? AND id_local = ?");
-        $stmt->bind_param("ii", $image_to_delete_id, $local_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $image_data = $result->fetch_assoc();
         $stmt->close();
-
-        if ($image_data) {
-            $file_path = "../assets/img/locales/" . $image_data['ruta_imagen'];
-            if (file_exists($file_path)) {
-                unlink($file_path);
-            }
-            $stmt = $conn->prepare("DELETE FROM imagenes_local WHERE id = ? AND id_local = ?");
-            $stmt->bind_param("ii", $image_to_delete_id, $local_id);
-            if ($stmt->execute()) {
-                $message = "<div class='alert alert-success'>Imagen eliminada con éxito.</div>";
-            } else {
-                $message = "<div class='alert alert-danger'>Error al eliminar la imagen: " . $stmt->error . "</div>";
-            }
-            $stmt->close();
-        }
     } else {
-        $message = "<div class='alert alert-danger'>No tienes permiso para eliminar esta imagen.</div>";
+        $message = "<div class='alert alert-danger'>No tienes permiso para eliminar locales.</div>";
+    }
+}
+
+// Lógica para eliminar imagen de local (solo POST con CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_image' && isset($_POST['id'])) {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $message = "<div class='alert alert-danger'>Error de validación CSRF.</div>";
+    } else {
+        $image_to_delete_id = (int)$_POST['id'];
+        if ($user_type === 'super_admin') {
+            $stmt = $conn->prepare("SELECT ruta_imagen FROM imagenes_local WHERE id = ?");
+            $stmt->bind_param("i", $image_to_delete_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $image_data = $result->fetch_assoc();
+            $stmt->close();
+
+            if ($image_data) {
+                $file_path = "../assets/img/locales/" . $image_data['ruta_imagen'];
+                if (file_exists($file_path)) {
+                    unlink($file_path);
+                }
+                $stmt = $conn->prepare("DELETE FROM imagenes_local WHERE id = ?");
+                $stmt->bind_param("i", $image_to_delete_id);
+                if ($stmt->execute()) {
+                    $message = "<div class='alert alert-success'>Imagen eliminada con éxito.</div>";
+                } else {
+                    $message = "<div class='alert alert-danger'>Error al eliminar la imagen: " . $stmt->error . "</div>";
+                }
+                $stmt->close();
+            }
+        } else if ($user_type === 'local' && $local_id) {
+            $stmt = $conn->prepare("SELECT ruta_imagen FROM imagenes_local WHERE id = ? AND id_local = ?");
+            $stmt->bind_param("ii", $image_to_delete_id, $local_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $image_data = $result->fetch_assoc();
+            $stmt->close();
+
+            if ($image_data) {
+                $file_path = "../assets/img/locales/" . $image_data['ruta_imagen'];
+                if (file_exists($file_path)) {
+                    unlink($file_path);
+                }
+                $stmt = $conn->prepare("DELETE FROM imagenes_local WHERE id = ? AND id_local = ?");
+                $stmt->bind_param("ii", $image_to_delete_id, $local_id);
+                if ($stmt->execute()) {
+                    $message = "<div class='alert alert-success'>Imagen eliminada con éxito.</div>";
+                } else {
+                    $message = "<div class='alert alert-danger'>Error al eliminar la imagen: " . $stmt->error . "</div>";
+                }
+                $stmt->close();
+            }
+        } else {
+            $message = "<div class='alert alert-danger'>No tienes permiso para eliminar esta imagen.</div>";
+        }
     }
 }
 
@@ -284,27 +288,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
     }
 }
 
-// Lógica para eliminar servicio de local
-if (isset($_GET['action']) && $_GET['action'] == 'delete_service' && isset($_GET['id'])) {
-    $service_to_delete_id = $_GET['id'];
-    if ($user_type === 'super_admin') {
-        $stmt = $conn->prepare("DELETE FROM servicios_local WHERE id = ?");
-        $stmt->bind_param("i", $service_to_delete_id);
-    } else if ($user_type === 'local' && $local_id) {
-        $stmt = $conn->prepare("DELETE FROM servicios_local WHERE id = ? AND id_local = ?");
-        $stmt->bind_param("ii", $service_to_delete_id, $local_id);
+// Lógica para eliminar servicio de local (solo POST con CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_service' && isset($_POST['id'])) {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $message = "<div class='alert alert-danger'>Error de validación CSRF.</div>";
     } else {
-        $message = "<div class='alert alert-danger'>No tienes permiso para eliminar este servicio.</div>";
-        $stmt = null;
-    }
-
-    if ($stmt) {
-        if ($stmt->execute()) {
-            $message = "<div class='alert alert-success'>Servicio eliminado con éxito.</div>";
+        $service_to_delete_id = (int)$_POST['id'];
+        if ($user_type === 'super_admin') {
+            $stmt = $conn->prepare("DELETE FROM servicios_local WHERE id = ?");
+            $stmt->bind_param("i", $service_to_delete_id);
+        } else if ($user_type === 'local' && $local_id) {
+            $stmt = $conn->prepare("DELETE FROM servicios_local WHERE id = ? AND id_local = ?");
+            $stmt->bind_param("ii", $service_to_delete_id, $local_id);
         } else {
-            $message = "<div class='alert alert-danger'>Error al eliminar el servicio: " . $stmt->error . "</div>";
+            $message = "<div class='alert alert-danger'>No tienes permiso para eliminar este servicio.</div>";
+            $stmt = null;
         }
-        $stmt->close();
+
+        if ($stmt) {
+            if ($stmt->execute()) {
+                $message = "<div class='alert alert-success'>Servicio eliminado con éxito.</div>";
+            } else {
+                $message = "<div class='alert alert-danger'>Error al eliminar el servicio: " . $stmt->error . "</div>";
+            }
+            $stmt->close();
+        }
     }
 }
 
@@ -342,27 +350,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
     }
 }
 
-// Lógica para eliminar menú de local
-if (isset($_GET['action']) && $_GET['action'] == 'delete_menu' && isset($_GET['id'])) {
-    $menu_to_delete_id = $_GET['id'];
-    if ($user_type === 'super_admin') {
-        $stmt = $conn->prepare("DELETE FROM menus_local WHERE id = ?");
-        $stmt->bind_param("i", $menu_to_delete_id);
-    } else if ($user_type === 'local' && $local_id) {
-        $stmt = $conn->prepare("DELETE FROM menus_local WHERE id = ? AND id_local = ?");
-        $stmt->bind_param("ii", $menu_to_delete_id, $local_id);
+// Lógica para eliminar menú de local (solo POST con CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_menu' && isset($_POST['id'])) {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $message = "<div class='alert alert-danger'>Error de validación CSRF.</div>";
     } else {
-        $message = "<div class='alert alert-danger'>No tienes permiso para eliminar este menú.</div>";
-        $stmt = null;
-    }
-
-    if ($stmt) {
-        if ($stmt->execute()) {
-            $message = "<div class='alert alert-success'>Menú eliminado con éxito.</div>";
+        $menu_to_delete_id = (int)$_POST['id'];
+        if ($user_type === 'super_admin') {
+            $stmt = $conn->prepare("DELETE FROM menus_local WHERE id = ?");
+            $stmt->bind_param("i", $menu_to_delete_id);
+        } else if ($user_type === 'local' && $local_id) {
+            $stmt = $conn->prepare("DELETE FROM menus_local WHERE id = ? AND id_local = ?");
+            $stmt->bind_param("ii", $menu_to_delete_id, $local_id);
         } else {
-            $message = "<div class='alert alert-danger'>Error al eliminar el menú: " . $stmt->error . "</div>";
+            $message = "<div class='alert alert-danger'>No tienes permiso para eliminar este menú.</div>";
+            $stmt = null;
         }
-        $stmt->close();
+
+        if ($stmt) {
+            if ($stmt->execute()) {
+                $message = "<div class='alert alert-success'>Menú eliminado con éxito.</div>";
+            } else {
+                $message = "<div class='alert alert-danger'>Error al eliminar el menú: " . $stmt->error . "</div>";
+            }
+            $stmt->close();
+        }
     }
 }
 
@@ -472,7 +484,8 @@ include 'admin_header.php';
                     <?php if (!$edit_local): ?>
                         <h2>Registrar tu Local</h2>
                         <form action="manage_locales.php" method="POST" enctype="multipart/form-data">
-                            <input type="hidden" name="form_type" value="local_info">
+<?= csrf_field() ?>
+<input type="hidden" name="form_type" value="local_info">
                             <div class="mb-3">
                                 <label for="nombre_local" class="form-label">Nombre del Local</label>
                                 <input type="text" class="form-control" id="nombre_local" name="nombre_local" required>
@@ -502,7 +515,8 @@ include 'admin_header.php';
                     <?php else: // Local ya registrado, mostrar formulario de edición y gestión de imágenes/servicios/menús ?>
                         <h2>Editar Información del Local</h2>
                         <form action="manage_locales.php" method="POST" enctype="multipart/form-data">
-                            <input type="hidden" name="form_type" value="local_info">
+<?= csrf_field() ?>
+<input type="hidden" name="form_type" value="local_info">
                             <input type="hidden" name="local_id" value="<?= htmlspecialchars($edit_local['id']) ?>">
                             <div class="mb-3">
                                 <label for="nombre_local" class="form-label">Nombre del Local</label>
@@ -541,7 +555,8 @@ include 'admin_header.php';
                         <h3 class="mt-5">Gestionar Imágenes</h3>
                         <?php if ($local_id): ?>
                             <form action="manage_locales.php" method="POST" enctype="multipart/form-data" class="mb-4">
-                                <input type="hidden" name="form_type" value="add_edit_image">
+<?= csrf_field() ?>
+<input type="hidden" name="form_type" value="add_edit_image">
                                 <input type="hidden" name="image_id" value="">
                                 <div class="row g-2 align-items-end">
                                     <div class="col-md-5">
@@ -576,7 +591,12 @@ include 'admin_header.php';
                                                     <td><img src="../assets/img/locales/<?= htmlspecialchars($image['ruta_imagen']) ?>" alt="<?= htmlspecialchars($image['descripcion']) ?>" width="100"></td>
                                                     <td><?= htmlspecialchars($image['descripcion']) ?></td>
                                                     <td>
-                                                        <a href="manage_locales.php?action=delete_image&id=<?= htmlspecialchars($image['id']) ?>" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar esta imagen?');">Eliminar</a>
+                                                        <form method="POST" action="manage_locales.php" style="display:inline;" onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta imagen?');">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="delete_image">
+    <input type="hidden" name="id" value="<?= htmlspecialchars($image['id']) ?>">
+    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+</form>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
@@ -591,7 +611,8 @@ include 'admin_header.php';
 
                             <h3 class="mt-5">Gestionar Servicios</h3>
                             <form action="manage_locales.php" method="POST" class="mb-4">
-                                <input type="hidden" name="form_type" value="add_edit_service">
+<?= csrf_field() ?>
+<input type="hidden" name="form_type" value="add_edit_service">
                                 <input type="hidden" name="service_id" value="">
                                 <div class="row g-2">
                                     <div class="col-md-4">
@@ -629,7 +650,12 @@ include 'admin_header.php';
                                                     <td><?= htmlspecialchars($service['descripcion']) ?></td>
                                                     <td><?= htmlspecialchars(number_format($service['precio'], 2)) ?> €</td>
                                                     <td>
-                                                        <a href="manage_locales.php?action=delete_service&id=<?= htmlspecialchars($service['id']) ?>" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar este servicio?');">Eliminar</a>
+                                                        <form method="POST" action="manage_locales.php" style="display:inline;" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este servicio?');">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="delete_service">
+    <input type="hidden" name="id" value="<?= htmlspecialchars($service['id']) ?>">
+    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+</form>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
@@ -644,7 +670,8 @@ include 'admin_header.php';
 
                             <h3 class="mt-5">Gestionar Menús</h3>
                             <form action="manage_locales.php" method="POST" class="mb-4">
-                                <input type="hidden" name="form_type" value="add_edit_menu">
+<?= csrf_field() ?>
+<input type="hidden" name="form_type" value="add_edit_menu">
                                 <input type="hidden" name="menu_id" value="">
                                 <div class="row g-2">
                                     <div class="col-md-4">
@@ -682,7 +709,12 @@ include 'admin_header.php';
                                                     <td><?= htmlspecialchars($menu['descripcion']) ?></td>
                                                     <td><?= htmlspecialchars(number_format($menu['precio_total'], 2)) ?> €</td>
                                                     <td>
-                                                        <a href="manage_locales.php?action=delete_menu&id=<?= htmlspecialchars($menu['id']) ?>" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar este menú?');">Eliminar</a>
+                                                        <form method="POST" action="manage_locales.php" style="display:inline;" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este menú?');">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="delete_menu">
+    <input type="hidden" name="id" value="<?= htmlspecialchars($menu['id']) ?>">
+    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+</form>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
@@ -728,7 +760,8 @@ include 'admin_header.php';
                                                     <td><?= htmlspecialchars(number_format($order['precio_total'], 2)) ?> €</td>
                                                     <td>
                                                         <form action="manage_locales.php" method="POST" style="display:inline;">
-                                                            <input type="hidden" name="form_type" value="update_order_status">
+<?= csrf_field() ?>
+<input type="hidden" name="form_type" value="update_order_status">
                                                             <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
                                                             <select name="new_status" class="form-select form-select-sm" onchange="this.form.submit()">
                                                                 <option value="pendiente" <?= ($order['estado'] == 'pendiente') ? 'selected' : '' ?>>Pendiente</option>
@@ -783,7 +816,12 @@ include 'admin_header.php';
                                             <td><?= htmlspecialchars($local['contacto_email']) ?></td>
                                             <td><?= htmlspecialchars($local['contacto_telefono']) ?></td>
                                             <td>
-                                                <a href="manage_locales.php?action=delete&id=<?= htmlspecialchars($local['id']) ?>" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar este local?');">Eliminar</a>
+                                                <form method="POST" action="manage_locales.php" style="display:inline;" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este local?');">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="delete">
+    <input type="hidden" name="id" value="<?= htmlspecialchars($local['id']) ?>">
+    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+</form>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
