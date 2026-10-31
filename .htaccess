@@ -8,7 +8,7 @@ Options -Indexes
 ServerSignature Off
 
 # Proteger archivos sensibles
-<FilesMatch "\.(md|sql|log|git|env|bak|backup)$">
+<FilesMatch "(\.(md|sql|log|git|env|bak|backup)|config\.local\.php)$">
     Order Allow,Deny
     Deny from all
 </FilesMatch>

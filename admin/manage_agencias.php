@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/../includes/upload_helper.php";
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -76,8 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
                 $profile_image_name = '';
                 if (isset($_FILES['imagen_perfil']) && $_FILES['imagen_perfil']['error'] == UPLOAD_ERR_OK) {
                     $target_dir = "../assets/img/agencias/";
-                    if (!is_dir($target_dir)) { mkdir($target_dir, 0777, true); }
-                    $profile_image_name = uniqid() . "_" . basename($_FILES['imagen_perfil']['name']);
+                    if (!is_dir($target_dir)) { mkdir($target_dir, 0755, true); }
+                    $profile_image_name = safe_image_filename($_FILES['imagen_perfil']);
                     $target_file = $target_dir . $profile_image_name;
                     if (!move_uploaded_file($_FILES['imagen_perfil']['tmp_name'], $target_file)) {
                         $message = "<div class='alert alert-danger'>Error al subir la imagen de perfil.</div>";

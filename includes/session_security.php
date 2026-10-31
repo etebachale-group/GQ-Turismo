@@ -9,7 +9,10 @@ if (session_status() === PHP_SESSION_NONE) {
     // Configuración segura de sesiones
     ini_set('session.cookie_httponly', 1); // Prevenir acceso JavaScript a cookies de sesión
     ini_set('session.use_only_cookies', 1); // Solo usar cookies, no URL
-    ini_set('session.cookie_secure', 0);    // Cambiar a 1 en producción con HTTPS
+    // Cookie solo por HTTPS cuando la petición es segura (producción)
+    $es_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    ini_set('session.cookie_secure', $es_https ? 1 : 0);
     ini_set('session.cookie_samesite', 'Strict'); // Protección CSRF
     
     session_start();
@@ -70,13 +73,9 @@ function require_login($allowed_types = []) {
  * @return string
  */
 function get_user_ip() {
-    if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-        return $_SERVER['HTTP_CLIENT_IP'];
-    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        return $_SERVER['HTTP_X_FORWARDED_FOR'];
-    } else {
-        return $_SERVER['REMOTE_ADDR'];
-    }
+    // SEGURIDAD: HTTP_CLIENT_IP y X-Forwarded-For los controla el cliente y se
+    // pueden falsificar; solo se confía en REMOTE_ADDR.
+    return $_SERVER['REMOTE_ADDR'] ?? '';
 }
 
 /**
