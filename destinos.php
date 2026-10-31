@@ -4,6 +4,7 @@ require_once 'includes/db_connect.php';
 
 // Obtener destinos directamente de la base de datos para evitar duplicados
 $categoria_filtro = $_GET['categoria'] ?? 'all';
+$region_filtro = strtolower($_GET['region'] ?? 'all');
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $items_per_page = 9;
 $offset = ($page - 1) * $items_per_page;
@@ -18,16 +19,24 @@ if ($result_categorias) {
     }
 }
 
-// Construir query para destinos
-$where_clause = '';
+// Construir query para destinos con filtros de categoría y región
+$conditions = [];
 $params = [];
 $types = '';
 
 if ($categoria_filtro !== 'all') {
-    $where_clause = " WHERE categoria = ?";
+    $conditions[] = "categoria = ?";
     $params[] = $categoria_filtro;
-    $types = 's';
+    $types .= 's';
 }
+
+if ($region_filtro === 'bioko') {
+    $conditions[] = "LOWER(COALESCE(ciudad, '')) IN ('malabo', 'luba', 'riaba', 'baney', 'ureka', 'moka')";
+} elseif ($region_filtro === 'riomuni') {
+    $conditions[] = "(LOWER(COALESCE(ciudad, '')) NOT IN ('malabo', 'luba', 'riaba', 'baney', 'ureka', 'moka') OR LOWER(COALESCE(ciudad, '')) IN ('bata', 'mongomo', 'mbini', 'evinayong', 'ebebiyin', 'cogo', 'niefang', 'oyala', 'añisok', 'akonibe'))";
+}
+
+$where_clause = !empty($conditions) ? " WHERE " . implode(" AND ", $conditions) : "";
 
 // Contar total de destinos
 $sql_count = "SELECT COUNT(DISTINCT id) as total FROM destinos" . $where_clause;
@@ -169,17 +178,30 @@ $conn->close();
 
 <div class="container py-5">
     <!-- Controles de Filtro -->
-    <div class="row mb-5">
+    <div class="row mb-4">
         <div class="col-12 text-center" data-aos="fade-up">
-            <h5 class="mb-3">Filtrar por Categoría</h5>
+            <h5 class="mb-3 fw-bold" style="color: var(--c-selva-900);">Explorar por Región</h5>
+            <div class="d-flex flex-wrap justify-content-center gap-2 mb-4">
+                <a href="destinos.php?region=all<?= $categoria_filtro !== 'all' ? '&categoria=' . urlencode($categoria_filtro) : '' ?>" class="filter-btn <?= $region_filtro === 'all' ? 'active' : '' ?>">
+                    <i class="bi bi-globe me-1"></i> Toda Guinea Ecuatorial
+                </a>
+                <a href="destinos.php?region=bioko<?= $categoria_filtro !== 'all' ? '&categoria=' . urlencode($categoria_filtro) : '' ?>" class="filter-btn <?= $region_filtro === 'bioko' ? 'active' : '' ?>">
+                    <i class="bi bi-water me-1"></i> Isla de Bioko (Malabo, Luba, Ureka)
+                </a>
+                <a href="destinos.php?region=riomuni<?= $categoria_filtro !== 'all' ? '&categoria=' . urlencode($categoria_filtro) : '' ?>" class="filter-btn <?= $region_filtro === 'riomuni' ? 'active' : '' ?>">
+                    <i class="bi bi-tree me-1"></i> Región Continental (Río Muni, Bata, Mongomo)
+                </a>
+            </div>
+
+            <h6 class="mb-2 text-muted">Filtrar por Categoría</h6>
             <div class="d-flex flex-wrap justify-content-center">
-                <a href="destinos.php?categoria=all" class="filter-btn <?php echo $categoria_filtro === 'all' ? 'active' : ''; ?>">
-                    <i class="bi bi-grid-fill me-2"></i>Todos
+                <a href="destinos.php?categoria=all<?= $region_filtro !== 'all' ? '&region=' . urlencode($region_filtro) : '' ?>" class="filter-btn <?= $categoria_filtro === 'all' ? 'active' : ''; ?>">
+                    <i class="bi bi-grid-fill me-2"></i>Todas
                 </a>
                 <?php foreach ($categorias as $cat): ?>
-                    <a href="destinos.php?categoria=<?php echo urlencode($cat); ?>" 
-                       class="filter-btn <?php echo $categoria_filtro === $cat ? 'active' : ''; ?>">
-                        <?php echo htmlspecialchars($cat); ?>
+                    <a href="destinos.php?categoria=<?= urlencode($cat) ?><?= $region_filtro !== 'all' ? '&region=' . urlencode($region_filtro) : '' ?>" 
+                       class="filter-btn <?= $categoria_filtro === $cat ? 'active' : ''; ?>">
+                        <?= htmlspecialchars($cat); ?>
                     </a>
                 <?php endforeach; ?>
             </div>

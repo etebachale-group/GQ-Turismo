@@ -82,6 +82,45 @@
 </div>
 <?php endif; ?>
 
+<!-- CMP-06: Barra de estado sin conexión y ahorro de datos -->
+<div id="gqOfflineAlert" class="alert alert--warning d-none text-center py-2" role="status" style="position:fixed; top:0; left:0; right:0; z-index:9999; margin:0; border-radius:0; font-weight:600; box-shadow:0 2px 10px rgba(0,0,0,0.15);">
+    <i class="bi bi-wifi-off me-2"></i> Estás navegando sin conexión a internet.
+</div>
+
+<!-- CMP-05: Navegación inferior móvil (5 accesos táctiles canónicos con aria-current) -->
+<?php
+$gq_current_page = basename($_SERVER['SCRIPT_NAME'] ?? '');
+?>
+<nav class="bottom-nav" aria-label="Navegación principal móvil">
+    <a href="index.php" class="bottom-nav-link <?= ($gq_current_page === 'index.php') ? 'active' : '' ?>" aria-current="<?= ($gq_current_page === 'index.php') ? 'page' : 'false' ?>">
+        <i class="bi bi-house-door fs-5"></i>
+        <span>Inicio</span>
+    </a>
+    <a href="destinos.php" class="bottom-nav-link <?= ($gq_current_page === 'destinos.php') ? 'active' : '' ?>" aria-current="<?= ($gq_current_page === 'destinos.php') ? 'page' : 'false' ?>">
+        <i class="bi bi-compass fs-5"></i>
+        <span>Destinos</span>
+    </a>
+    <a href="crear_itinerario.php" class="bottom-nav-link <?= (in_array($gq_current_page, ['crear_itinerario.php', 'itinerario.php'])) ? 'active' : '' ?>" aria-current="<?= (in_array($gq_current_page, ['crear_itinerario.php', 'itinerario.php'])) ? 'page' : 'false' ?>">
+        <i class="bi bi-calendar-range fs-5"></i>
+        <span>Itinerario</span>
+    </a>
+    <a href="mis_pedidos.php" class="bottom-nav-link <?= ($gq_current_page === 'mis_pedidos.php') ? 'active' : '' ?>" aria-current="<?= ($gq_current_page === 'mis_pedidos.php') ? 'page' : 'false' ?>">
+        <i class="bi bi-bag-check fs-5"></i>
+        <span>Pedidos</span>
+    </a>
+    <?php if (isset($_SESSION['user_id'])): ?>
+    <a href="mis_mensajes.php" class="bottom-nav-link <?= ($gq_current_page === 'mis_mensajes.php') ? 'active' : '' ?>" aria-current="<?= ($gq_current_page === 'mis_mensajes.php') ? 'page' : 'false' ?>">
+        <i class="bi bi-chat-dots fs-5"></i>
+        <span>Chat</span>
+    </a>
+    <?php else: ?>
+    <a href="#" class="bottom-nav-link" data-bs-toggle="modal" data-bs-target="#loginModal" aria-current="false">
+        <i class="bi bi-person fs-5"></i>
+        <span>Acceso</span>
+    </a>
+    <?php endif; ?>
+</nav>
+
 <!-- Bootstrap 5.3 JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
 
@@ -208,6 +247,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         lastScroll = currentScroll;
+    });
+
+    // CMP-06: Control de conexión
+    window.addEventListener('offline', () => {
+        const el = document.getElementById('gqOfflineAlert');
+        if (el) el.classList.remove('d-none');
+    });
+    window.addEventListener('online', () => {
+        const el = document.getElementById('gqOfflineAlert');
+        if (el) el.classList.add('d-none');
     });
 });
 </script>

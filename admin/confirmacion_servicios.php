@@ -43,10 +43,11 @@ $stmt->close();
 
 // Manejar acciones
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf();
     $action = $_POST['action'] ?? '';
     $confirmacion_id = intval($_POST['confirmacion_id'] ?? 0);
     
-    if ($action === 'confirmar' || $action === 'rechazar' || $action === 'completar') {
+    if ($action === 'confirmar' || $action === 'rechazar' || $action === 'completar' || $action === 'cobro_efectivo') {
         $nuevo_estado = '';
         switch ($action) {
             case 'confirmar':
@@ -58,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $fecha_field = 'fecha_confirmacion';
                 break;
             case 'completar':
+            case 'cobro_efectivo':
                 $nuevo_estado = 'completado';
                 $fecha_field = 'fecha_completado';
                 break;
@@ -83,6 +85,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt2->bind_param("i", $confirmacion_id);
                 $stmt2->execute();
                 $stmt2->close();
+            } elseif ($action === 'cobro_efectivo') {
+                $stmt_ped = $conn->prepare("SELECT ps.id, ps.id_turista, ps.precio_total FROM pedidos_servicios ps JOIN confirmacion_servicios cs ON ps.id = cs.id_pedido_servicio WHERE cs.id = ?");
+                $stmt_ped->bind_param("i", $confirmacion_id);
+                $stmt_ped->execute();
+                $ped_data = $stmt_ped->get_result()->fetch_assoc();
+                $stmt_ped->close();
+
+                if ($ped_data) {
+                    $up_ped = $conn->prepare("UPDATE pedidos_servicios SET estado = 'pagado' WHERE id = ?");
+                    $up_ped->bind_param("i", $ped_data['id']);
+                    $up_ped->execute();
+                    $up_ped->close();
+
+                    $ref_ef = 'GQ-EF-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+                    $idem = bin2hex(random_bytes(16));
+                    $ins_pago = $conn->prepare("INSERT INTO pagos (id_pedido, id_turista, monto, moneda, metodo, estado, codigo_referencia, idempotency_key, notas) VALUES (?, ?, ?, 'XAF', 'efectivo', 'completado', ?, ?, 'Cobro en efectivo registrado por el proveedor en su panel')");
+                    $ins_pago->bind_param("iidss", $ped_data['id'], $ped_data['id_turista'], $ped_data['precio_total'], $ref_ef, $idem);
+                    $ins_pago->execute();
+                    $ins_pago->close();
+                }
             }
         } else {
             $_SESSION['error_message'] = 'Error al procesar la acción';
@@ -94,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-include 'includes/header.php';
+require_once 'admin_header.php';
 ?>
 
 <div class="container-fluid px-4">
@@ -225,8 +247,11 @@ include 'includes/header.php';
                                 </form>
                             </div>
                             <?php elseif ($estado === 'confirmado'): ?>
-                            <div class="card-footer bg-white border-top-0">
-                                <button type="button" class="btn btn-info w-100" onclick="completarServicio(<?= $servicio['id'] ?>)">
+                            <div class="card-footer bg-white border-top-0 d-flex flex-column gap-2">
+                                <button type="button" class="btn btn-success w-100 py-2 fw-bold" onclick="registrarCobro(<?= $servicio['id'] ?>)">
+                                    <i class="bi bi-cash-coin me-1"></i>Registrar Cobro en Efectivo
+                                </button>
+                                <button type="button" class="btn btn-outline-info w-100" onclick="completarServicio(<?= $servicio['id'] ?>)">
                                     <i class="bi bi-check-all me-1"></i>Marcar como Completado
                                 </button>
                             </div>
@@ -251,6 +276,7 @@ include 'includes/header.php';
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="confirmacion_id" id="modal_confirmacion_id">
                     <input type="hidden" name="action" id="modal_action">
                     <textarea class="form-control" name="notas" rows="3" placeholder="Notas opcionales..."></textarea>
@@ -283,6 +309,14 @@ function rechazarServicio(id) {
     modal.show();
 }
 
+function registrarCobro(id) {
+    document.getElementById('modal_confirmacion_id').value = id;
+    document.getElementById('modal_action').value = 'cobro_efectivo';
+    document.getElementById('modal_submit_btn').textContent = 'Confirmar Cobro Recibido';
+    document.getElementById('modal_submit_btn').className = 'btn btn-success';
+    modal.show();
+}
+
 function completarServicio(id) {
     document.getElementById('modal_confirmacion_id').value = id;
     document.getElementById('modal_action').value = 'completar';
@@ -292,4 +326,4 @@ function completarServicio(id) {
 }
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php require_once 'admin_footer.php'; ?>

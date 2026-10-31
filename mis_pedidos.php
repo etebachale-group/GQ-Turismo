@@ -155,11 +155,44 @@ if ($conn) {
                                 <div class="alert alert-primary mb-3">
                                     <strong>Total: <?= htmlspecialchars(format_currency((float)($pedido['precio_total']), 'XAF')) ?></strong>
                                 </div>
-                                <?php if ($pedido['estado'] == 'confirmado'): ?>
-                                    <a href="pagar.php?id=<?= htmlspecialchars($pedido['id']) ?>" class="btn btn-success w-100">
-                                        <i class="bi bi-credit-card me-2"></i>Proceder al Pago
+
+                                <!-- UX-05: Estado con progreso y Próximo Paso -->
+                                <div class="p-3 mb-3 bg-light rounded" style="border-left: 4px solid var(--c-selva-600, #1b5e20);">
+                                    <div class="fw-bold small text-uppercase text-muted mb-1"><i class="bi bi-arrow-right-circle me-1"></i> Próximo Paso:</div>
+                                    <?php if ($pedido['estado'] === 'pendiente'): ?>
+                                        <p class="mb-0 small text-dark">Tu solicitud fue enviada al proveedor. Espera su confirmación de cupo y disponibilidad.</p>
+                                    <?php elseif ($pedido['estado'] === 'confirmado'): ?>
+                                        <p class="mb-2 small text-dark"><strong>¡Servicio Aceptado!</strong> Confirma tu método de pago (efectivo o transferencia) para generar tu comprobante.</p>
+                                        <div class="d-flex gap-2">
+                                            <a href="pagar.php?id=<?= htmlspecialchars($pedido['id']) ?>" class="btn btn-sm btn-success flex-fill">
+                                                <i class="bi bi-wallet2 me-1"></i>Pagar / Checkout
+                                            </a>
+                                            <a href="confirmacion_reserva.php?id=<?= htmlspecialchars($pedido['id']) ?>" class="btn btn-sm btn-outline-success flex-fill">
+                                                <i class="bi bi-ticket-perforated me-1"></i>Voucher
+                                            </a>
+                                        </div>
+                                    <?php elseif ($pedido['estado'] === 'completado' || $pedido['estado'] === 'pagado'): ?>
+                                        <p class="mb-2 small text-dark"><strong>¡Reserva Lista!</strong> Descarga tu comprobante y coordina el encuentro con tu proveedor.</p>
+                                        <a href="confirmacion_reserva.php?id=<?= htmlspecialchars($pedido['id']) ?>" class="btn btn-sm btn-outline-primary w-100">
+                                            <i class="bi bi-file-earmark-check me-1"></i>Ver Comprobante
+                                        </a>
+                                    <?php else: ?>
+                                        <p class="mb-0 small text-muted">Esta reserva se encuentra inactiva o cancelada.</p>
+                                    <?php endif; ?>
+                                </div>
+
+                                <!-- Botones de Contacto Directo: WhatsApp y Chat -->
+                                <?php
+                                $wa_txt = urlencode("Hola, tengo la reserva #" . $pedido['id'] . " para " . $pedido['item_name'] . " en GQ-Turismo.");
+                                ?>
+                                <div class="d-flex gap-2">
+                                    <a href="https://wa.me/240222000000?text=<?= $wa_txt ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success flex-fill">
+                                        <i class="bi bi-whatsapp me-1"></i>WhatsApp
                                     </a>
-                                <?php endif; ?>
+                                    <a href="mis_mensajes.php" class="btn btn-sm btn-outline-secondary flex-fill">
+                                        <i class="bi bi-chat-dots me-1"></i>Chat Interno
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -211,11 +244,26 @@ if ($conn) {
                                             <span class="badge bg-<?= ($pedido['estado'] == 'confirmado') ? 'success' : (($pedido['estado'] == 'cancelado') ? 'danger' : (($pedido['estado'] == 'completado') ? 'info' : 'warning')) ?>">
                                                 <?= htmlspecialchars(ucfirst($pedido['estado'])) ?>
                                             </span>
-                                            <?php if ($pedido['estado'] == 'confirmado'): ?>
-                                                <a href="pagar.php?id=<?= htmlspecialchars($pedido['id']) ?>" class="btn btn-sm btn-success mt-2">
-                                                    <i class="bi bi-credit-card me-1"></i>Pagar
+                                            <div class="d-flex flex-column gap-1 mt-2">
+                                                <?php if ($pedido['estado'] == 'confirmado'): ?>
+                                                    <a href="pagar.php?id=<?= htmlspecialchars($pedido['id']) ?>" class="btn btn-sm btn-success">
+                                                        <i class="bi bi-wallet2 me-1"></i>Pagar / Checkout
+                                                    </a>
+                                                    <a href="confirmacion_reserva.php?id=<?= htmlspecialchars($pedido['id']) ?>" class="btn btn-sm btn-outline-success">
+                                                        <i class="bi bi-ticket-perforated me-1"></i>Voucher
+                                                    </a>
+                                                <?php elseif ($pedido['estado'] == 'completado' || $pedido['estado'] == 'pagado'): ?>
+                                                    <a href="confirmacion_reserva.php?id=<?= htmlspecialchars($pedido['id']) ?>" class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-file-earmark-check me-1"></i>Comprobante
+                                                    </a>
+                                                <?php endif; ?>
+                                                <?php
+                                                $wa_txt_desk = urlencode("Hola, tengo la reserva #" . $pedido['id'] . " para " . $pedido['item_name'] . " en GQ-Turismo.");
+                                                ?>
+                                                <a href="https://wa.me/240222000000?text=<?= $wa_txt_desk ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success">
+                                                    <i class="bi bi-whatsapp me-1"></i>WhatsApp
                                                 </a>
-                                            <?php endif; ?>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>

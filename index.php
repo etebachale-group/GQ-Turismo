@@ -343,6 +343,92 @@ if ($conn) { // Ensure connection is open for these queries
     </div>
 </section>
 
+<!-- Franja de Confianza Local (UX-01) -->
+<section class="py-4 border-top border-bottom" style="background: var(--bg-surface, #ffffff);">
+    <div class="container">
+        <div class="row g-4 text-center">
+            <div class="col-md-4">
+                <div class="d-flex align-items-center justify-content-center gap-3">
+                    <i class="bi bi-patch-check-fill text-success fs-1"></i>
+                    <div class="text-start">
+                        <h6 class="fw-bold mb-0">Proveedores Verificados</h6>
+                        <small class="text-muted">Guías turísticos y agencias locales formalmente registrados.</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex align-items-center justify-content-center gap-3">
+                    <i class="bi bi-cash-coin text-success fs-1"></i>
+                    <div class="text-start">
+                        <h6 class="fw-bold mb-0">Pago en Efectivo o Transferencia</h6>
+                        <small class="text-muted">Precios en FCFA (XAF). Abona al guía el día del viaje o por banco.</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex align-items-center justify-content-center gap-3">
+                    <i class="bi bi-whatsapp text-success fs-1"></i>
+                    <div class="text-start">
+                        <h6 class="fw-bold mb-0">Atención y Soporte Local</h6>
+                        <small class="text-muted">Contacto y asistencia directa para tu viaje en Guinea Ecuatorial.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Accesos Regionales: Bioko y Río Muni (UX-01) -->
+<section class="py-5" style="background: var(--c-arena-50, #fcfaf7);">
+    <div class="container">
+        <div class="text-center mb-4">
+            <span class="badge badge--confirmado mb-2">Las Dos Joyas de Guinea Ecuatorial</span>
+            <h2 class="fw-bold" style="font-family: var(--font-display, serif); color: var(--c-selva-900);">¿Qué región deseas descubrir hoy?</h2>
+            <p class="text-muted">Elige entre la exuberante isla volcánica de Bioko o la inmensidad selvática y costera de Río Muni.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm overflow-hidden" style="border-radius: var(--radius-lg, 16px);">
+                    <div class="position-relative">
+                        <img src="assets/img/destinos/68fa7befc3c67_catedral-de-santa-isabel.jpg" class="card-img-top" alt="Isla de Bioko" style="height: 240px; object-fit: cover;">
+                        <span class="badge position-absolute top-0 end-0 m-3" style="background: rgba(10,47,24,0.85); color: #fff; font-size: 0.85rem; padding: 0.4rem 0.8rem; border-radius: 20px;">Región Insular</span>
+                    </div>
+                    <div class="card-body p-4 d-flex flex-column justify-content-between">
+                        <div>
+                            <h4 class="fw-bold mb-2" style="font-family: var(--font-display, serif);">Explorar Isla de Bioko</h4>
+                            <p class="text-muted mb-3">
+                                Descubre las cascadas de Ilachi y Moka, las playas de arena negra en Ureka con desove de tortugas, el imponente Pico Basilé y la arquitectura de Malabo.
+                            </p>
+                        </div>
+                        <a href="destinos.php?region=bioko" class="btn btn-outline-success w-100 fw-bold">
+                            Ver Destinos en Bioko <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm overflow-hidden" style="border-radius: var(--radius-lg, 16px);">
+                    <div class="position-relative">
+                        <img src="assets/img/destinos/693d90d836f35_IMG_8906.JPG" class="card-img-top" alt="Río Muni" style="height: 240px; object-fit: cover;">
+                        <span class="badge position-absolute top-0 end-0 m-3" style="background: rgba(10,47,24,0.85); color: #fff; font-size: 0.85rem; padding: 0.4rem 0.8rem; border-radius: 20px;">Región Continental</span>
+                    </div>
+                    <div class="card-body p-4 d-flex flex-column justify-content-between">
+                        <div>
+                            <h4 class="fw-bold mb-2" style="font-family: var(--font-display, serif);">Explorar Río Muni</h4>
+                            <p class="text-muted mb-3">
+                                Adéntrate en el Parque Nacional de Monte Alén, las tranquilas aguas de Mbini, la monumental Basílica de Mongomo y el dinamismo atlántico de Bata.
+                            </p>
+                        </div>
+                        <a href="destinos.php?region=riomuni" class="btn btn-outline-success w-100 fw-bold">
+                            Ver Destinos en Río Muni <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <?php if (!empty($carouseles_activos)): ?>
 <!-- Carousel de Publicidades -->
 <section class="py-5">
