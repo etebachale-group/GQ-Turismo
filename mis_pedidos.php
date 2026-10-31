@@ -66,6 +66,22 @@ if ($conn) {
     </div>
 </section>
 
+<!-- Banner Informativo e-Visa Oficial (VI-05) -->
+<div class="container mt-4">
+    <div class="alert alert-info d-flex align-items-center justify-content-between flex-wrap gap-3 p-4" style="background: var(--c-selva-50, #f0f7f2); border: 1px solid var(--c-selva-100, #e3f1e9); border-radius: var(--radius-md, 10px);">
+        <div class="d-flex align-items-center gap-3">
+            <i class="bi bi-passport text-success fs-1"></i>
+            <div>
+                <h5 class="mb-1 fw-bold" style="color: var(--c-selva-900);">¿Vas a viajar a Guinea Ecuatorial desde el exterior?</h5>
+                <p class="mb-0 text-muted">Asegúrate de contar con tu visado electrónico oficial aprobado antes de tu fecha de vuelo.</p>
+            </div>
+        </div>
+        <div>
+            <?= boton_evisa('es', 'btn btn--primary btn-sm') ?>
+        </div>
+    </div>
+</div>
+
 <!-- Filtros y Estadísticas -->
 <section class="py-4 bg-light border-bottom">
     <div class="container">

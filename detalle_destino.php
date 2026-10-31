@@ -325,6 +325,18 @@ require_once 'includes/header.php';
         <!-- Sidebar -->
         <div class="col-lg-4">
             <!-- Card de Reserva -->
+                        <!-- Aviso e-Visa para turistas extranjeros (VI-03) -->
+            <div class="card info-card mb-4" style="background: var(--c-selva-50, #f0f7f2); border: 1px solid var(--c-selva-100, #e3f1e9);" data-aos="fade-left">
+                <div class="card-body p-4 text-center">
+                    <span class="badge badge--confirmado mb-2">Visado Oficial</span>
+                    <h5 class="fw-bold mb-2" style="font-family: var(--font-display); color: var(--c-selva-900);">¿Vienes desde el exterior?</h5>
+                    <p class="text-muted small mb-3">
+                        Recuerda solicitar tu visado electrónico oficial antes de viajar para ingresar al país y disfrutar de este destino.
+                    </p>
+                    <?= boton_evisa('es', 'btn btn--primary btn-sm w-100') ?>
+                </div>
+            </div>
+
             <div class="card info-card sticky-top mb-4" style="top: 20px;" data-aos="fade-left">
                 <div class="card-body p-4">
                     <h3 class="h4 fw-bold mb-3">Reserva este Destino</h3>

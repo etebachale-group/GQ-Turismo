@@ -255,9 +255,30 @@ if ($conn) { // Ensure connection is open for these queries
     <div class="container">
         <h1 class="display-3 fw-bold">Descubre el Corazón de África</h1>
         <p class="lead mb-4">Tu aventura en Guinea Ecuatorial comienza aquí. Explora playas vírgenes, selvas exuberantes y una cultura vibrante.</p>
-        <a href="destinos.php" class="btn btn-light btn-lg">Explorar Destinos <i class="bi bi-arrow-right"></i></a>
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+            <a href="destinos.php" class="btn btn-light btn-lg">Explorar Destinos <i class="bi bi-arrow-right"></i></a>
+            <?= boton_evisa('es', 'btn btn-outline-light btn-lg') ?>
+        </div>
     </div>
 </header>
+
+<!-- Sección Informativa e-Visa Oficial (VI-02) -->
+<section class="py-4" style="background: var(--c-selva-50, #f0f7f2); border-bottom: 1px solid var(--c-selva-100, #e3f1e9);">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <span class="badge badge--confirmado mb-2">Trámite Oficial de Entrada</span>
+                <h3 style="font-family: var(--font-display, serif); color: var(--c-selva-900, #0a2f18); margin-bottom: 0.25rem;">¿Viajas a Guinea Ecuatorial desde el exterior?</h3>
+                <p class="text-muted mb-0" style="font-size: 0.95rem;">
+                    Gestiona tu visado electrónico oficial antes de viajar en el portal gubernamental.
+                </p>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <?= boton_evisa('es', 'btn btn--primary') ?>
+            </div>
+        </div>
+    </div>
+</section>
 <?php endif; ?>
 
 <?php if ($is_logged_in): ?>
