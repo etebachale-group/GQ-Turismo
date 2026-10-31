@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/../includes/upload_helper.php";
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -31,8 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
     $main_image_name = '';
     if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] == UPLOAD_ERR_OK) {
         $target_dir = "../assets/img/destinos/";
-        if (!is_dir($target_dir)) { mkdir($target_dir, 0777, true); }
-        $main_image_name = uniqid() . "_" . basename($_FILES['imagen']['name']);
+        if (!is_dir($target_dir)) { mkdir($target_dir, 0755, true); }
+        $main_image_name = safe_image_filename($_FILES['imagen']);
         $target_file = $target_dir . $main_image_name;
         if (!move_uploaded_file($_FILES['imagen']['tmp_name'], $target_file)) {
             $message = "<div class='alert alert-danger'>Error al subir la imagen principal.</div>";
@@ -147,8 +148,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
         $message = "<div class='alert alert-danger'>ID de destino no proporcionado para la galería.</div>";
     } else if (isset($_FILES['gallery_imagen']) && $_FILES['gallery_imagen']['error'] == UPLOAD_ERR_OK) {
         $target_dir = "../assets/img/destinos/";
-        if (!is_dir($target_dir)) { mkdir($target_dir, 0777, true); }
-        $image_name = uniqid() . "_" . basename($_FILES['gallery_imagen']['name']);
+        if (!is_dir($target_dir)) { mkdir($target_dir, 0755, true); }
+        $image_name = safe_image_filename($_FILES['gallery_imagen']);
         $target_file = $target_dir . $image_name;
 
         if (move_uploaded_file($_FILES['gallery_imagen']['tmp_name'], $target_file)) {

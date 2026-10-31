@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/../includes/upload_helper.php";
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -161,13 +162,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
                     $target_dir = "../assets/img/guias/";
                     if (!is_dir($target_dir)) {
                         error_log("DEBUG: Target directory does not exist. Attempting to create: " . $target_dir);
-                        if (!mkdir($target_dir, 0777, true)) {
+                        if (!mkdir($target_dir, 0755, true)) {
                             error_log("ERROR: Failed to create directory: " . $target_dir);
                             $message = "<div class='alert alert-danger'>Error: No se pudo crear el directorio de imágenes.</div>";
                             // Exit or handle error appropriately
                         }
                     }
-                    $profile_image_name = uniqid() . "_" . basename($_FILES['imagen_perfil']['name']);
+                    $profile_image_name = safe_image_filename($_FILES['imagen_perfil']);
                     $target_file = $target_dir . $profile_image_name;
                     error_log("DEBUG: Attempting to move uploaded file to: " . $target_file);
                     if (!move_uploaded_file($_FILES['imagen_perfil']['tmp_name'], $target_file)) {
@@ -244,11 +245,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
     if ($guia_id) {
         $target_dir = "../assets/img/guias/"; // Directorio para imágenes de guías
         if (!is_dir($target_dir)) {
-            mkdir($target_dir, 0777, true);
+            mkdir($target_dir, 0755, true);
         }
 
         if ($image_file && $image_file['error'] == UPLOAD_ERR_OK) {
-            $image_name = uniqid() . "_" . basename($image_file['name']);
+            $image_name = safe_image_filename($image_file);
             $target_file = $target_dir . $image_name;
             $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
 
