@@ -82,7 +82,7 @@ if ($conn) {
 ?>
 
 <!-- Hero Section -->
-<section class="py-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+<section class="py-5" style="background: linear-gradient(135deg, var(--c-selva-900, #0D3821) 0%, var(--c-selva-700, #17613A) 100%);">
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-8">

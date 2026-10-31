@@ -8,7 +8,7 @@
         left: -280px;
         width: 280px;
         height: 100vh;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--c-selva-900, #0D3821) 0%, var(--c-selva-700, #17613A) 100%);
         transition: left 0.3s ease;
         z-index: 1050;
         overflow-y: auto;
@@ -39,7 +39,7 @@
         top: 15px;
         left: 15px;
         z-index: 1000;
-        background: #667eea;
+        background: var(--c-selva-700, #17613A);
         color: white;
         border: none;
         padding: 10px 15px;

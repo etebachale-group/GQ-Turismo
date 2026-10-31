@@ -52,7 +52,7 @@ if ($conn) {
 ?>
 
 <!-- Hero Section -->
-<section class="py-5" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);" data-aos="fade-in">
+<header class="catalog-hero" style="background: radial-gradient(circle at 80% 20%, rgba(200, 149, 79, 0.25) 0%, transparent 50%), radial-gradient(circle at 10% 80%, rgba(23, 97, 58, 0.95) 0%, rgba(13, 56, 33, 0.98) 100%); color: #fff; padding: 4rem 0 3rem 0; border-bottom: 1px solid rgba(255,255,255,0.08);">
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-8">
@@ -64,7 +64,7 @@ if ($conn) {
             </div>
         </div>
     </div>
-</section>
+</header>
 
 <!-- Banner Informativo e-Visa Oficial (VI-05) -->
 <div class="container mt-4">

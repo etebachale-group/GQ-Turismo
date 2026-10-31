@@ -190,7 +190,7 @@ include 'includes/header.php';
     
     .progress-fill {
         height: 100%;
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(90deg, #0D3821 0%, #17613A 100%);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -247,7 +247,7 @@ include 'includes/header.php';
         top: 0;
         bottom: 0;
         width: 3px;
-        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(180deg, #0D3821 0%, #17613A 100%);
     }
     
     .timeline-item {
@@ -268,7 +268,7 @@ include 'includes/header.php';
         height: 30px;
         border-radius: 50%;
         background: white;
-        border: 3px solid #667eea;
+        border: 3px solid #17613A;
         display: flex;
         align-items: center;
         justify-content: center;

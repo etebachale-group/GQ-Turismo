@@ -98,7 +98,7 @@ if ($result) {
 
 <style>
 .hero-reserva {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #0D3821 0%, #17613A 100%);
     color: white;
     padding: 4rem 0;
     margin-bottom: 3rem;
@@ -128,7 +128,7 @@ if ($result) {
 }
 
 .destino-item {
-    border-left: 3px solid #667eea;
+    border-left: 3px solid #17613A;
     padding-left: 1rem;
     margin-bottom: 1rem;
 }

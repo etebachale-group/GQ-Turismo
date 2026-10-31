@@ -80,8 +80,8 @@ function formatDate($date) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         :root {
-            --primary: #667eea;
-            --secondary: #764ba2;
+            --primary: #17613A;
+            --secondary: #0D3821;
             --success: #10b981;
             --warning: #f59e0b;
             --danger: #ef4444;
@@ -89,7 +89,7 @@ function formatDate($date) {
         }
         
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0D3821 0%, #17613A 100%);
             min-height: 100vh;
             overflow-x: hidden;
         }

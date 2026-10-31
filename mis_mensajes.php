@@ -151,7 +151,7 @@ require_once 'includes/header.php';
     
     .conversations-header {
         padding: 1.25rem;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--c-selva-900, #0D3821) 0%, var(--c-selva-700, #17613A) 100%);
         color: white;
     }
     
@@ -181,7 +181,7 @@ require_once 'includes/header.php';
     
     .conversation-item.active {
         background: linear-gradient(135deg, #f0f4ff 0%, #e6efff 100%);
-        border-color: #667eea;
+        border-color: var(--c-selva-700, #17613A);
     }
     
     .conversation-item .contact-name {
@@ -228,7 +228,7 @@ require_once 'includes/header.php';
     
     .chat-header {
         padding: 1.25rem;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--c-selva-900, #0D3821) 0%, var(--c-selva-700, #17613A) 100%);
         color: white;
         display: flex;
         justify-content: space-between;
@@ -273,7 +273,7 @@ require_once 'includes/header.php';
     }
     
     .message-bubble.sent .message-content {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--c-selva-900, #0D3821) 0%, var(--c-selva-700, #17613A) 100%);
         color: white;
         border-bottom-right-radius: 0.25rem;
     }
@@ -318,7 +318,7 @@ require_once 'includes/header.php';
     }
     
     .chat-input-form textarea:focus {
-        border-color: #667eea;
+        border-color: var(--c-selva-700, #17613A);
         outline: none;
         box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
     }
@@ -327,7 +327,7 @@ require_once 'includes/header.php';
         border-radius: 10px;
         padding: 0.75rem 1.5rem;
         font-weight: 600;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--c-selva-900, #0D3821) 0%, var(--c-selva-700, #17613A) 100%);
         border: none;
         color: white;
         transition: all 0.2s ease;
@@ -376,7 +376,7 @@ require_once 'includes/header.php';
     </button>
     
     <div class="mb-4">
-        <h1 class="display-5 fw-bold mb-2"><i class="bi bi-chat-dots-fill me-2" style="color: #667eea;"></i>Mis Mensajes</h1>
+        <h1 class="display-5 fw-bold mb-2"><i class="bi bi-chat-dots-fill me-2" style="color: var(--c-selva-700, #17613A);"></i>Mis Mensajes</h1>
         <p class="text-muted">Conversa con agencias, guías y locales</p>
     </div>
 

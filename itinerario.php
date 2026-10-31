@@ -93,7 +93,7 @@ $conn->close();
 
 <style>
 .hero-itinerarios {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: radial-gradient(circle at 80% 20%, rgba(200, 149, 79, 0.25) 0%, transparent 50%), radial-gradient(circle at 10% 80%, rgba(23, 97, 58, 0.95) 0%, rgba(13, 56, 33, 0.98) 100%);
     padding: 4rem 0;
     margin-bottom: 3rem;
     position: relative;

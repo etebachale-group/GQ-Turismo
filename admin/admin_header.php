@@ -227,7 +227,7 @@ $base_url = '../';
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--c-selva-900, #0D3821) 0%, var(--c-selva-700, #17613A) 100%);
             color: var(--white);
             border: none;
             box-shadow: 0 8px 24px rgba(0,0,0,0.4);

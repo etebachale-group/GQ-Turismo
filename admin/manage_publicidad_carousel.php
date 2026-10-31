@@ -201,7 +201,7 @@ include 'admin_header.php';
     .section-title {
         font-size: 1.75rem;
         font-weight: 700;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--c-selva-900, #0D3821) 0%, var(--c-selva-700, #17613A) 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         margin: 0;
@@ -232,7 +232,7 @@ include 'admin_header.php';
         width: 100%;
         height: 200px;
         object-fit: cover;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--c-selva-900, #0D3821) 0%, var(--c-selva-700, #17613A) 100%);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -314,7 +314,7 @@ include 'admin_header.php';
     }
     
     .btn-primary-gradient {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--c-selva-900, #0D3821) 0%, var(--c-selva-700, #17613A) 100%);
         color: white;
     }
     
@@ -351,7 +351,7 @@ include 'admin_header.php';
     
     .form-modern .form-control:focus,
     .form-modern .form-select:focus {
-        border-color: #667eea;
+        border-color: var(--c-selva-700, #17613A);
         box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
     
@@ -605,7 +605,7 @@ include 'admin_header.php';
 <div class="modal fade" id="publicidadModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content" style="border-radius: 16px; border: none;">
-            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 16px 16px 0 0;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--c-selva-900, #0D3821) 0%, var(--c-selva-700, #17613A) 100%); color: white; border-radius: 16px 16px 0 0;">
                 <h5 class="modal-title">
                     <i class="bi bi-megaphone me-2"></i>
                     Agregar/Editar Publicidad
@@ -691,7 +691,7 @@ include 'admin_header.php';
 <div class="modal fade" id="carouselModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content" style="border-radius: 16px; border: none;">
-            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 16px 16px 0 0;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--c-selva-900, #0D3821) 0%, var(--c-selva-700, #17613A) 100%); color: white; border-radius: 16px 16px 0 0;">
                 <h5 class="modal-title">
                     <i class="bi bi-collection me-2"></i>
                     Agregar/Editar Slide del Carrusel

@@ -2,7 +2,7 @@
 <style>
     /* Navbar Principal */
     .navbar-custom {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--c-selva-900, #0D3821) 0%, var(--c-selva-700, #17613A) 100%);
         box-shadow: 0 2px 15px rgba(0,0,0,0.1);
         padding: 0.75rem 0;
     }
@@ -92,7 +92,7 @@
     }
     
     .dropdown-item:hover {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--c-selva-900, #0D3821) 0%, var(--c-selva-700, #17613A) 100%);
         color: white;
     }
     
