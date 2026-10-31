@@ -1,20 +1,11 @@
-# Proteger carpeta database de acceso web
-# Este archivo bloquea el acceso a todos los archivos PHP y SQL en esta carpeta
-
-# Denegar acceso a archivos PHP
-<Files "*.php">
-    Order Allow,Deny
+# Denegar todo acceso web a la carpeta database
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order Deny,Allow
     Deny from all
-</Files>
+</IfModule>
 
-# Denegar acceso a archivos SQL
-<Files "*.sql">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-# Denegar listado de directorio
 Options -Indexes
-
-# Mensaje de error personalizado
 ErrorDocument 403 "Acceso denegado"

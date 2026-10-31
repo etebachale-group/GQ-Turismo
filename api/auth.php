@@ -22,14 +22,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $nombre = trim($_POST['nombre'] ?? '');
             $email = trim($_POST['email'] ?? '');
             $contrasena = $_POST['contrasena'] ?? '';
-            $tipo_usuario = $_POST['tipo_usuario'] ?? 'turista'; // Default to 'turista'
+            // CONT-05: El registro público SOLO permite crear cuentas de tipo 'turista'.
+            // Los proveedores y administradores deben ser creados/aprobados desde el panel administrativo.
+            $tipo_usuario = 'turista';
 
             if (empty($nombre) || empty($email) || empty($contrasena)) {
                 $response['message'] = 'Todos los campos son obligatorios.';
             } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $response['message'] = 'El formato del email no es válido.';
-            } elseif (!in_array($tipo_usuario, ['turista', 'agencia', 'guia', 'local', 'super_admin'])) {
-                $response['message'] = 'Tipo de usuario no válido.';
             } else {
                 // Verificar si el email ya existe
                 $stmt = $conn->prepare("SELECT id FROM usuarios WHERE email = ?");
@@ -48,9 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     if ($insert_stmt->execute()) {
                         $response['success'] = true;
                         $response['message'] = 'Registro completado con éxito. Ahora puedes iniciar sesión.';
-                        if ($tipo_usuario === 'guia') {
-                            $response['redirect'] = 'admin/manage_guias.php'; // Redirigir al guía a su panel
-                        }
                     } else {
                         $response['message'] = 'Error durante el registro. Inténtalo de nuevo.';
                     }

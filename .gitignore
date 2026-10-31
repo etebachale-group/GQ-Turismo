@@ -1,0 +1,21 @@
+# Entorno y Secretos
+.env
+.env.local
+.env.*.local
+*.log
+
+# Base de datos y dumps sensibles
+*.sql
+!database/schema_canonico.sql
+database/backup_*.sql
+
+# Archivos de sistema y SO
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Directorio temporal / cache
+vendor/
+node_modules/
+.vscode/
+.idea/
