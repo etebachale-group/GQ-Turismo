@@ -1,9 +1,6 @@
 <?php
-// Verificar si el usuario ha iniciado sesión
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit();
-}
+require_once __DIR__ . '/../includes/session_security.php';
+require_login();
 
 $user_name = $_SESSION['user_nombre'] ?? 'Usuario';
 $user_type = $_SESSION['user_type'] ?? '';
