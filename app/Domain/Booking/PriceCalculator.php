@@ -56,4 +56,12 @@ class PriceCalculator {
 
         return $precio;
     }
+
+    /**
+     * Calcula y congela el total en servidor para un pedido.
+     */
+    public static function calculateTotal(mysqli $conn, string $tipoProveedor, string $tipoItem, int $idItem, int $idProveedor, int $cantidad): float {
+        $unitario = self::getVerifiedPrice($conn, $tipoProveedor, $tipoItem, $idItem, $idProveedor);
+        return round($unitario * max(1, $cantidad), 2);
+    }
 }
