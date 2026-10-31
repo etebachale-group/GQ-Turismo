@@ -11,9 +11,21 @@ if (!isset($conn) && !isset($GLOBALS['db_connected'])) {
 }
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/evisa.php';
+require_once __DIR__ . '/../app/Support/I18n.php';
+
+if (isset($_GET['lang'])) {
+    \App\Support\I18n::setLang((string)$_GET['lang']);
+}
+$gq_lang = \App\Support\I18n::getLang();
+
+if (!function_exists('__')) {
+    function __(string $key, array $replace = [], ?string $lang = null): string {
+        return \App\Support\I18n::trans($key, $replace, $lang);
+    }
+}
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="<?= htmlspecialchars($gq_lang) ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
