@@ -1,0 +1,15 @@
+# Secretos y configuración local
+includes/config.local.php
+.env
+*.env
+
+# Volcados de base de datos con datos reales
+if0_*.sql
+*_backup.sql
+
+# Copias y basura
+*.backup
+*.bak
+*.log
+.DS_Store
+Thumbs.db

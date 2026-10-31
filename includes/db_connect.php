@@ -19,13 +19,26 @@ if (!defined('DB_ACCESS_ALLOWED')) {
 }
 
 // Configuración de conexión
-$servername = "localhost";
-$username = "root";        // ⚠️ CAMBIAR EN PRODUCCIÓN - Usar usuario específico
-$password = "";            // ⚠️ ESTABLECER CONTRASEÑA FUERTE
-$dbname = "gq_turismo";
+// Orden de prioridad: variables de entorno -> includes/config.local.php (NO versionado)
+// -> valores por defecto de desarrollo local (XAMPP).
+// En producción crea includes/config.local.php (ver config.local.example.php).
+$servername = getenv('DB_HOST') ?: "localhost";
+$username   = getenv('DB_USER') ?: "root";
+$password   = getenv('DB_PASS') !== false ? getenv('DB_PASS') : "";
+$dbname     = getenv('DB_NAME') ?: "gq_turismo";
+$show_errors = false; // true solo en desarrollo local
 
-// Configuración de errores (solo en desarrollo)
-$show_errors = true; // Cambiar a false en producción
+$local_config = __DIR__ . '/config.local.php';
+if (is_file($local_config)) {
+    $cfg = require $local_config;
+    if (is_array($cfg)) {
+        $servername  = $cfg['host']        ?? $servername;
+        $username    = $cfg['user']        ?? $username;
+        $password    = $cfg['pass']        ?? $password;
+        $dbname      = $cfg['name']        ?? $dbname;
+        $show_errors = $cfg['show_errors'] ?? $show_errors;
+    }
+}
 
 // Crear conexión
 $conn = new mysqli($servername, $username, $password, $dbname);
