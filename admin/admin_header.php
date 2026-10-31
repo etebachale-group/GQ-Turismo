@@ -1,9 +1,8 @@
 <?php
-// Verificar si el usuario ha iniciado sesión
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit();
-}
+require_once __DIR__ . '/../includes/session_security.php';
+
+// Verificar que el usuario tenga rol administrativo o de proveedor
+require_auth(['agencia', 'guia', 'local', 'super_admin']);
 
 $user_name = $_SESSION['user_nombre'] ?? 'Usuario';
 $user_type = $_SESSION['user_type'] ?? '';

@@ -30,13 +30,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['form_type']) && $_POST
     // Handle single image upload for main image
     $main_image_name = '';
     if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] == UPLOAD_ERR_OK) {
-        $target_dir = "../assets/img/destinos/";
-        if (!is_dir($target_dir)) { mkdir($target_dir, 0777, true); }
-        $main_image_name = uniqid() . "_" . basename($_FILES['imagen']['name']);
-        $target_file = $target_dir . $main_image_name;
-        if (!move_uploaded_file($_FILES['imagen']['tmp_name'], $target_file)) {
-            $message = "<div class='alert alert-danger'>Error al subir la imagen principal.</div>";
-            $main_image_name = ''; // Reset if upload fails
+        $uploadResult = \App\Support\FileUpload::uploadImage($_FILES['imagen'], __DIR__ . "/../assets/img/destinos/");
+        if ($uploadResult['success']) {
+            $main_image_name = $uploadResult['filename'];
+        } else {
+            $message = "<div class='alert alert-danger'>" . htmlspecialchars($uploadResult['error']) . "</div>";
+            $main_image_name = '';
         }
     }
 

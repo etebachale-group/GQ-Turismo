@@ -19,3 +19,6 @@ vendor/
 node_modules/
 .vscode/
 .idea/
+
+composer.phar
+

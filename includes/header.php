@@ -1,8 +1,5 @@
 <?php
-// Evitar inicio de sesión duplicada
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/session_security.php';
 
 // Incluir db_connect solo si no está ya incluido y no se ha cargado previamente
 if (!isset($conn) && !isset($GLOBALS['db_connected'])) {
@@ -33,9 +30,8 @@ if (!isset($conn) && !isset($GLOBALS['db_connected'])) {
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="assets/css/style.css">
-  <link rel="stylesheet" href="assets/css/responsive.css">
   <link rel="stylesheet" href="assets/css/modern-ui.css">
-  <link rel="stylesheet" href="assets/css/mobile-enhancements.css">
+  <link rel="stylesheet" href="assets/css/gq-modern-mobile.css">
 
   <!-- Logo -->
   <link rel="icon" href="assets/img/logo.png" type="image/x-icon">

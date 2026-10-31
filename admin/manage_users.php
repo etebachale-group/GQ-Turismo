@@ -34,21 +34,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
     }
 }
 
-// Lógica para eliminar usuario
-if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
-    $user_id = $_GET['id'];
-    // Prevenir que el super_admin se elimine a sí mismo
-    if ($user_id == $_SESSION['user_id']) {
-        $message = "<div class='alert alert-danger'>No puedes eliminar tu propia cuenta de super administrador.</div>";
+// Lógica para eliminar usuario (ADM-01: Solo mediante POST con token CSRF)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete' && isset($_POST['user_id'])) {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $message = "<div class='alert alert-danger'>Error de seguridad: Token CSRF inválido.</div>";
     } else {
-        $stmt = $conn->prepare("DELETE FROM usuarios WHERE id = ?");
-        $stmt->bind_param("i", $user_id);
-        if ($stmt->execute()) {
-            $message = "<div class='alert alert-success'>Usuario eliminado con éxito.</div>";
+        $user_id = (int)$_POST['user_id'];
+        // Prevenir que el super_admin se elimine a sí mismo
+        if ($user_id === (int)$_SESSION['user_id']) {
+            $message = "<div class='alert alert-danger'>No puedes eliminar tu propia cuenta de super administrador.</div>";
         } else {
-            $message = "<div class='alert alert-danger'>Error al eliminar el usuario: " . $stmt->error . "</div>";
+            $stmt = $conn->prepare("DELETE FROM usuarios WHERE id = ?");
+            $stmt->bind_param("i", $user_id);
+            if ($stmt->execute()) {
+                $message = "<div class='alert alert-success'>Usuario eliminado con éxito.</div>";
+            } else {
+                $message = "<div class='alert alert-danger'>Error al eliminar el usuario: " . $stmt->error . "</div>";
+            }
+            $stmt->close();
         }
-        $stmt->close();
     }
 }
 
@@ -195,11 +199,14 @@ include 'admin_header.php';
                                 <td><small><?= date('d/m/Y', strtotime($user['fecha_registro'])) ?></small></td>
                                 <td>
                                     <?php if ($user['id'] != $_SESSION['user_id']): ?>
-                                        <a href="manage_users.php?action=delete&id=<?= $user['id'] ?>" 
-                                           class="btn btn-sm btn-danger" 
-                                           onclick="return confirm('⚠️ ¿Estás seguro de eliminar a <?= htmlspecialchars($user['nombre']) ?>? Esta acción no se puede deshacer.');">
-                                            <i class="bi bi-trash"></i> Eliminar
-                                        </a>
+                                        <form method="POST" action="manage_users.php" style="display:inline;" onsubmit="return confirm('⚠️ ¿Estás seguro de eliminar a <?= htmlspecialchars($user['nombre']) ?>? Esta acción no se puede deshacer.');">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                <i class="bi bi-trash"></i> Eliminar
+                                            </button>
+                                        </form>
                                     <?php else: ?>
                                         <button class="btn btn-sm btn-outline-secondary" disabled title="No puedes eliminar tu propia cuenta">
                                             <i class="bi bi-shield-lock"></i> Tu cuenta

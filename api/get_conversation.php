@@ -30,16 +30,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $stmt = $conn->prepare("
         SELECT m.*, 
                CASE 
-                   WHEN m.sender_type = 'turista' THEN (SELECT nombre FROM usuarios WHERE id = m.sender_id)
-                   WHEN m.sender_type = 'agencia' THEN (SELECT nombre_agencia FROM agencias WHERE id = m.sender_id)
-                   WHEN m.sender_type = 'guia' THEN (SELECT nombre_guia FROM guias_turisticos WHERE id = m.sender_id)
-                   WHEN m.sender_type = 'local' THEN (SELECT nombre_local FROM lugares_locales WHERE id = m.sender_id)
+                   WHEN m.sender_type = 'turista' THEN (SELECT nombre FROM usuarios WHERE id = m.sender_id LIMIT 1)
+                   WHEN m.sender_type = 'agencia' THEN (SELECT nombre_agencia FROM agencias WHERE id = m.sender_id OR id_usuario = m.sender_id LIMIT 1)
+                   WHEN m.sender_type = 'guia' THEN (SELECT nombre_guia FROM guias_turisticos WHERE id = m.sender_id OR id_usuario = m.sender_id LIMIT 1)
+                   WHEN m.sender_type = 'local' THEN (SELECT nombre_local FROM lugares_locales WHERE id = m.sender_id OR id_usuario = m.sender_id LIMIT 1)
                END as sender_name,
                CASE 
-                   WHEN m.receiver_type = 'turista' THEN (SELECT nombre FROM usuarios WHERE id = m.receiver_id)
-                   WHEN m.receiver_type = 'agencia' THEN (SELECT nombre_agencia FROM agencias WHERE id = m.receiver_id)
-                   WHEN m.receiver_type = 'guia' THEN (SELECT nombre_guia FROM guias_turisticos WHERE id = m.receiver_id)
-                   WHEN m.receiver_type = 'local' THEN (SELECT nombre_local FROM lugares_locales WHERE id = m.receiver_id)
+                   WHEN m.receiver_type = 'turista' THEN (SELECT nombre FROM usuarios WHERE id = m.receiver_id LIMIT 1)
+                   WHEN m.receiver_type = 'agencia' THEN (SELECT nombre_agencia FROM agencias WHERE id = m.receiver_id OR id_usuario = m.receiver_id LIMIT 1)
+                   WHEN m.receiver_type = 'guia' THEN (SELECT nombre_guia FROM guias_turisticos WHERE id = m.receiver_id OR id_usuario = m.receiver_id LIMIT 1)
+                   WHEN m.receiver_type = 'local' THEN (SELECT nombre_local FROM lugares_locales WHERE id = m.receiver_id OR id_usuario = m.receiver_id LIMIT 1)
                END as receiver_name
         FROM mensajes m
         WHERE ((m.sender_id = ? AND m.sender_type = ? AND m.receiver_id = ? AND m.receiver_type = ?)

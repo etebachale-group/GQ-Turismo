@@ -20,16 +20,17 @@ $message = '';
 
 if ($conn) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pagar'])) {
-        // Simular el proceso de pago
-        $nuevo_estado = 'completado';
-        $stmt = $conn->prepare("UPDATE pedidos_servicios SET estado = ? WHERE id = ? AND id_turista = ? AND estado = 'confirmado'");
-        $stmt->bind_param("sii", $nuevo_estado, $id_pedido, $id_turista);
-        if ($stmt->execute() && $stmt->affected_rows > 0) {
-            $message = "<div class='alert alert-success'>¡Pago realizado con éxito! Tu pedido ha sido pagado.</div>";
+        if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+            $message = "<div class='alert alert-danger'>Error de seguridad: Token CSRF inválido.</div>";
         } else {
-            $message = "<div class='alert alert-danger'>No se pudo procesar el pago. El pedido no está confirmado o ya ha sido pagado.</div>";
+            $gateway = new \App\Domain\Payments\ManualPaymentGateway($conn);
+            $payResult = $gateway->confirmPayment((int)$id_pedido);
+            if ($payResult['success']) {
+                $message = "<div class='alert alert-success'>¡Pago confirmado y registrado con éxito!</div>";
+            } else {
+                $message = "<div class='alert alert-danger'>" . htmlspecialchars($payResult['message']) . "</div>";
+            }
         }
-        $stmt->close();
     }
 
     // Obtener nombre del servicio según el tipo
@@ -101,11 +102,12 @@ if ($conn) {
                         <hr>
                         <p class="fs-4 fw-bold text-end">Total a Pagar: <?= htmlspecialchars(number_format($pedido['precio_total'], 2)) ?> €</p>
                         
-                        <form action="pagar.php?id=<?= $id_pedido ?>" method="POST">
-                            <h4 class="mt-4">Método de Pago</h4>
-                            <p class="text-muted">Esto es una simulación. Haz clic en el botón para marcar el pedido como pagado.</p>
+                        <form action="pagar.php?id=<?= (int)$id_pedido ?>" method="POST">
+                            <?= csrf_field() ?>
+                            <h4 class="mt-4">Confirmación y Pago de Reserva</h4>
+                            <p class="text-muted">Procesamiento seguro a través de la pasarela de pagos oficial de GQ-Turismo.</p>
                             <div class="d-grid">
-                                <button type="submit" name="pagar" class="btn btn-success btn-lg">Pagar Ahora</button>
+                                <button type="submit" name="pagar" class="btn btn-success btn-lg"><i class="bi bi-shield-check me-2"></i>Confirmar y Pagar</button>
                             </div>
                         </form>
                     <?php elseif ($pedido && ($pedido['estado'] === 'completado' || $pedido['estado'] === 'pagado')): ?>
