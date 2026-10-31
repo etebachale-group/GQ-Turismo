@@ -1,1 +1,0 @@
-"# GQ-Turismo"  initgit add README.mdgit commit -m "first commit"git branch -M maingit remote add origin https://github.com/etebachale-group/GQ-Turismo.gitgit push -u origin main

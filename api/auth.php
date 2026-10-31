@@ -28,7 +28,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $response['message'] = 'Todos los campos son obligatorios.';
             } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $response['message'] = 'El formato del email no es válido.';
-            } elseif (!in_array($tipo_usuario, ['turista', 'agencia', 'guia', 'local', 'super_admin'])) {
+            } elseif (!in_array($tipo_usuario, ['turista', 'agencia', 'guia', 'local'], true)) {
+                // SEGURIDAD: 'super_admin' NO puede obtenerse por registro público;
+                // solo un super_admin existente lo asigna desde admin/manage_users.php
                 $response['message'] = 'Tipo de usuario no válido.';
             } else {
                 // Verificar si el email ya existe
@@ -75,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 if ($user = $result->fetch_assoc()) {
                     if (password_verify($contrasena, $user['contrasena'])) {
                         // Iniciar sesión
+                        session_regenerate_id(true);
                         $_SESSION['user_id'] = $user['id'];
                         $_SESSION['user_nombre'] = $user['nombre'];
                         $_SESSION['user_type'] = $user['tipo_usuario']; // Store user type
