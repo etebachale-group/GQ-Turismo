@@ -102,17 +102,24 @@ $precio_num = (float)($destino['precio']);
 $precio_eur = round($precio_num / 655.957, 1);
 ?>
 
-<!-- Hero Editorial Destino -->
+<!-- Hero Editorial Destino con Wishlist -->
 <section class="position-relative text-white" style="background: linear-gradient(180deg, rgba(13, 56, 33, 0.45) 0%, rgba(13, 56, 33, 0.88) 100%), url('<?= $hero_img ?>') center/cover no-repeat; min-height: 440px; padding: 4.5rem 0 3.5rem 0; display: flex; align-items: flex-end;">
     <div class="container position-relative" style="z-index: 2;">
-        <!-- Breadcrumb Glass -->
-        <nav aria-label="breadcrumb" class="mb-3">
-            <ol class="breadcrumb mb-0" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(8px); display: inline-flex; padding: 0.4rem 1rem; border-radius: 50px;">
-                <li class="breadcrumb-item"><a href="index.php" class="text-white-50 text-decoration-none">Inicio</a></li>
-                <li class="breadcrumb-item"><a href="destinos.php" class="text-white-50 text-decoration-none">Destinos</a></li>
-                <li class="breadcrumb-item active text-white" aria-current="page"><?= htmlspecialchars($destino['nombre']); ?></li>
-            </ol>
-        </nav>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <!-- Breadcrumb Glass -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(8px); display: inline-flex; padding: 0.4rem 1rem; border-radius: 50px;">
+                    <li class="breadcrumb-item"><a href="index.php" class="text-white-50 text-decoration-none">Inicio</a></li>
+                    <li class="breadcrumb-item"><a href="destinos.php" class="text-white-50 text-decoration-none">Destinos</a></li>
+                    <li class="breadcrumb-item active text-white" aria-current="page"><?= htmlspecialchars($destino['nombre']); ?></li>
+                </ol>
+            </nav>
+
+            <!-- Botón Wishlist en Hero -->
+            <button type="button" class="btn-wishlist position-static" data-destination-id="<?= $destino['id'] ?>" title="Guardar en favoritos">
+                <i class="bi bi-heart"></i>
+            </button>
+        </div>
 
         <div class="d-flex flex-wrap gap-2 mb-3">
             <span class="badge rounded-pill px-3 py-2" style="background: var(--c-selva-700); font-size: 0.85rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;">
@@ -133,7 +140,7 @@ $precio_eur = round($precio_num / 655.957, 1);
         </h1>
 
         <div class="d-flex align-items-center gap-3">
-            <div style="font-size: 1.8rem; font-weight: 800; color: var(--c-arena-300, #F4D396); font-family: var(--font-display);">
+            <div style="font-size: 1.8rem; font-weight: 800; color: var(--c-arena-300, #F4D396); font-family: var(--font-display);" data-currency-target data-base-xaf="<?= $precio_num ?>">
                 <?= format_currency($precio_num, 'XAF') ?>
             </div>
             <div class="text-white-50" style="font-size: 0.9rem; border-left: 1px solid rgba(255,255,255,0.25); padding-left: 0.75rem;">
@@ -193,6 +200,88 @@ $precio_eur = round($precio_num / 655.957, 1);
                     </div>
                 </div>
             </article>
+
+            <!-- Inclusiones & Exclusiones (Checklist Moderno de Turismo) -->
+            <section class="card border-0 shadow-sm p-4 p-md-5 mb-4" style="border-radius: 20px; background: #fff; border: 1px solid rgba(0,0,0,0.06) !important;">
+                <h2 class="h4 fw-bold mb-4" style="font-family: var(--font-display); color: var(--c-selva-900);">
+                    Detalles del Servicio
+                </h2>
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="inclusion-card h-100">
+                            <h3 class="h6 fw-bold mb-3 text-success d-flex align-items-center gap-2">
+                                <i class="bi bi-check-circle-fill"></i> Lo que incluye
+                            </h3>
+                            <div class="inclusion-item">
+                                <i class="bi bi-check-lg text-success fw-bold"></i>
+                                <span>Guía turístico oficial certificado durante toda la excursión.</span>
+                            </div>
+                            <div class="inclusion-item">
+                                <i class="bi bi-check-lg text-success fw-bold"></i>
+                                <span>Permisos de acceso a reservas naturales y comunidades locales.</span>
+                            </div>
+                            <div class="inclusion-item">
+                                <i class="bi bi-check-lg text-success fw-bold"></i>
+                                <span>Asistencia y coordinación logística desde Malabo o Bata.</span>
+                            </div>
+                            <div class="inclusion-item">
+                                <i class="bi bi-check-lg text-success fw-bold"></i>
+                                <span>Explicaciones culturales e históricas en español y lengua nativa.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="exclusion-card h-100">
+                            <h3 class="h6 fw-bold mb-3 text-secondary d-flex align-items-center gap-2">
+                                <i class="bi bi-x-circle-fill"></i> No incluido
+                            </h3>
+                            <div class="inclusion-item">
+                                <i class="bi bi-x text-muted fs-5"></i>
+                                <span class="text-muted">Vuelos internacionales (e-Visa disponible en enlace oficial).</span>
+                            </div>
+                            <div class="inclusion-item">
+                                <i class="bi bi-x text-muted fs-5"></i>
+                                <span class="text-muted">Bebidas alcohólicas y propinas personales voluntarias.</span>
+                            </div>
+                            <div class="inclusion-item">
+                                <i class="bi bi-x text-muted fs-5"></i>
+                                <span class="text-muted">Equipamiento especializado de escalada o submarinismo.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Plan de Expedición / Timeline Interactivo -->
+            <section class="card border-0 shadow-sm p-4 p-md-5 mb-4" style="border-radius: 20px; background: #fff; border: 1px solid rgba(0,0,0,0.06) !important;">
+                <h2 class="h4 fw-bold mb-3" style="font-family: var(--font-display); color: var(--c-selva-900);">
+                    Itinerario del Día de Expedición
+                </h2>
+                <p class="text-muted small mb-4">Cronograma flexible adaptado a las condiciones climáticas tropicales.</p>
+
+                <div class="experience-timeline">
+                    <div class="timeline-step">
+                        <div class="timeline-step-badge">1</div>
+                        <h3 class="timeline-step-title">08:00 &bull; Punto de Encuentro y Briefing</h3>
+                        <p class="timeline-step-desc">Recepción por tu guía asignado, revisión de equipo recomendado y presentación del recorrido.</p>
+                    </div>
+                    <div class="timeline-step">
+                        <div class="timeline-step-badge">2</div>
+                        <h3 class="timeline-step-title">10:30 &bull; Llegada al Destino y Exploración</h3>
+                        <p class="timeline-step-desc">Trekking guiado por senderos naturales, cascadas o miradores panorámicos del área.</p>
+                    </div>
+                    <div class="timeline-step">
+                        <div class="timeline-step-badge">3</div>
+                        <h3 class="timeline-step-title">13:30 &bull; Almuerzo Tradicional & Descanso</h3>
+                        <p class="timeline-step-desc">Degustación de gastronomía ecuatoguineana (pescado fresco, plátano macho, salsa de cacahuete).</p>
+                    </div>
+                    <div class="timeline-step">
+                        <div class="timeline-step-badge">4</div>
+                        <h3 class="timeline-step-title">16:30 &bull; Regreso y Cierre de la Aventura</h3>
+                        <p class="timeline-step-desc">Retorno con el transporte local al punto de partida con recuerdos fotográficos inolvidables.</p>
+                    </div>
+                </div>
+            </section>
 
             <!-- Galería de Imágenes -->
             <?php if (count($gallery_images) > 0): ?>
@@ -261,16 +350,54 @@ $precio_eur = round($precio_num / 655.957, 1);
                 <?= boton_evisa('es', 'btn btn-primary rounded-pill w-100 py-2 fw-semibold') ?>
             </div>
 
-            <!-- Card de Reserva Sticky -->
-            <div class="card border-0 shadow-sm p-4 sticky-top mb-4" style="top: 24px; border-radius: 20px; background: #fff; border: 1px solid rgba(0,0,0,0.06) !important;">
+            <!-- Card de Reserva Interactiva (Booking Calculator Widget) -->
+            <div id="gqBookingWidget" class="card border-0 shadow-sm p-4 sticky-top mb-4" 
+                 style="top: 24px; border-radius: 20px; background: #fff; border: 1px solid rgba(0,0,0,0.06) !important;"
+                 data-base-price="<?= $precio_num ?>"
+                 data-destination-id="<?= $destino['id'] ?>">
+                 
                 <div class="d-flex justify-content-between align-items-baseline mb-3">
                     <div>
-                        <span class="text-muted text-uppercase small d-block fw-bold" style="letter-spacing: 0.05em; font-size: 0.7rem;">Tarifa desde</span>
+                        <span class="text-muted text-uppercase small d-block fw-bold" style="letter-spacing: 0.05em; font-size: 0.7rem;">Tarifa por persona</span>
                         <span class="fw-bold" style="font-size: 1.8rem; color: var(--c-selva-700); font-family: var(--font-display);">
                             <?= format_currency($precio_num, 'XAF') ?>
                         </span>
                     </div>
                     <span class="text-muted small">&asymp; <?= $precio_eur ?> &euro;</span>
+                </div>
+
+                <!-- Formulario Interactivo de Cotización In Situ -->
+                <div class="p-3 rounded-4 mb-3" style="background: #f8faf9; border: 1px solid rgba(0,0,0,0.06);">
+                    <!-- Selector de Fecha -->
+                    <div class="mb-3">
+                        <label for="bookingDate" class="form-label small fw-bold text-dark mb-1">
+                            <i class="bi bi-calendar-event me-1 text-success"></i> Fecha de la Expedición
+                        </label>
+                        <input type="date" id="bookingDate" class="form-control form-control-sm rounded-pill" min="<?= date('Y-m-d') ?>" value="<?= date('Y-m-d', strtotime('+2 days')) ?>">
+                    </div>
+
+                    <!-- Contador de Viajeros -->
+                    <div>
+                        <label class="form-label small fw-bold text-dark mb-1">
+                            <i class="bi bi-people me-1 text-primary"></i> Número de Viajeros
+                        </label>
+                        <div class="d-flex align-items-center justify-content-between bg-white p-2 rounded-pill border">
+                            <button type="button" id="btnMinusTraveler" class="btn btn-sm btn-light rounded-circle px-2 py-0 fw-bold">-</button>
+                            <input type="text" id="bookingTravelers" class="form-control-plaintext text-center fw-bold p-0" style="width: 40px;" value="1" readonly>
+                            <button type="button" id="btnPlusTraveler" class="btn btn-sm btn-light rounded-circle px-2 py-0 fw-bold">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumen de Costo Total Dinámico -->
+                <div class="d-flex justify-content-between align-items-center mb-3 px-1">
+                    <span class="fw-bold" style="color: var(--c-selva-900);">Total Estimado:</span>
+                    <div class="text-end">
+                        <div id="bookingTotalPrice" class="fw-bold fs-5 text-success">
+                            <?= format_currency($precio_num, 'XAF') ?>
+                        </div>
+                        <small id="bookingTotalEur" class="text-muted d-block">&asymp; <?= $precio_eur ?> &euro; EUR</small>
+                    </div>
                 </div>
 
                 <div class="p-3 rounded-3 mb-4" style="background: var(--c-arena-50, #FDF9F2); border: 1px dashed var(--c-arena-300, #F4D396);">
@@ -285,7 +412,7 @@ $precio_eur = round($precio_num / 655.957, 1);
 
                 <?php if (isset($_SESSION['user_id']) && $_SESSION['user_type'] === 'turista'): ?>
                     <div class="d-grid gap-2">
-                        <a href="reservas.php?destino=<?= $destino['id']; ?>" class="btn btn-primary rounded-pill py-3 fw-bold">
+                        <a id="btnProceedBooking" href="reservas.php?destino=<?= $destino['id']; ?>&personas=1" class="btn btn-primary rounded-pill py-3 fw-bold shadow-sm">
                             <i class="bi bi-calendar-check me-2"></i>Reservar Esta Experiencia
                         </a>
                         <a href="crear_itinerario.php?destino=<?= $destino['id']; ?>" class="btn btn-outline-secondary rounded-pill py-2 fw-semibold">
@@ -382,7 +509,11 @@ $precio_eur = round($precio_num / 655.957, 1);
                     $sim_img = !empty($similar['imagen']) ? 'assets/img/destinos/' . htmlspecialchars($similar['imagen']) : 'assets/img/destinos/default.jpg';
                 ?>
                     <div class="col-md-4">
-                        <article class="card-experience h-100 d-flex flex-column" style="background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
+                        <article class="card-experience h-100 d-flex flex-column position-relative" style="background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
+                            <button type="button" class="btn-wishlist" data-destination-id="<?= $similar['id'] ?>" title="Guardar en lista de deseos">
+                                <i class="bi bi-heart"></i>
+                            </button>
+
                             <div class="position-relative overflow-hidden" style="aspect-ratio: 16 / 10;">
                                 <img src="<?= $sim_img ?>" alt="<?= htmlspecialchars($similar['nombre']) ?>" 
                                      class="w-100 h-100 object-fit-cover" loading="lazy"
@@ -399,7 +530,7 @@ $precio_eur = round($precio_num / 655.957, 1);
                                     </a>
                                 </h3>
                                 <div class="pt-3 border-top d-flex justify-content-between align-items-center mt-2">
-                                    <span class="fw-bold" style="color: var(--c-selva-700);">
+                                    <span class="fw-bold" style="color: var(--c-selva-700);" data-currency-target data-base-xaf="<?= (float)$similar['precio'] ?>">
                                         <?= format_currency((float)$similar['precio'], 'XAF'); ?>
                                     </span>
                                     <a href="detalle_destino.php?id=<?= $similar['id'] ?>" class="btn btn-sm btn-outline-primary rounded-pill px-3">
@@ -414,6 +545,17 @@ $precio_eur = round($precio_num / 655.957, 1);
         </section>
     <?php endif; ?>
 </main>
+
+<!-- Barra Flotante Inferior de Reserva para Dispositivos Móviles -->
+<aside class="mobile-quick-book" aria-label="Reserva rápida móvil">
+    <div>
+        <span class="text-muted small d-block" style="font-size: 0.7rem; font-weight: 600;">TOTAL ESTIMADO</span>
+        <strong id="mobileBarPrice" class="text-success" style="font-size: 1.15rem;"><?= format_currency($precio_num, 'XAF') ?></strong>
+    </div>
+    <a href="reservas.php?destino=<?= $destino['id']; ?>&personas=1" class="btn btn-primary rounded-pill px-4 fw-bold">
+        Reservar Ahora <i class="bi bi-chevron-right ms-1"></i>
+    </a>
+</aside>
 
 <!-- Modal para ver imágenes ampliadas -->
 <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">

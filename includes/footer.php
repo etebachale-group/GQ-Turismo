@@ -261,5 +261,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+<script src="assets/js/travel-experience.js"></script>
 </body>
 </html>

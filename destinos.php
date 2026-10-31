@@ -5,6 +5,7 @@ require_once 'includes/db_connect.php';
 // Filtros y parámetros
 $categoria_filtro = $_GET['categoria'] ?? 'all';
 $region_filtro = strtolower($_GET['region'] ?? 'all');
+$presupuesto_filtro = $_GET['presupuesto'] ?? 'all';
 $q_filtro = trim($_GET['q'] ?? '');
 $orden = $_GET['orden'] ?? 'nombre_asc';
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
@@ -45,6 +46,14 @@ if ($region_filtro === 'bioko') {
     $conditions[] = "LOWER(COALESCE(ciudad, '')) IN ('malabo', 'luba', 'riaba', 'baney', 'ureka', 'moka')";
 } elseif ($region_filtro === 'riomuni') {
     $conditions[] = "(LOWER(COALESCE(ciudad, '')) NOT IN ('malabo', 'luba', 'riaba', 'baney', 'ureka', 'moka') OR LOWER(COALESCE(ciudad, '')) IN ('bata', 'mongomo', 'mbini', 'evinayong', 'ebebiyin', 'cogo', 'niefang', 'oyala', 'añisok', 'akonibe'))";
+}
+
+if ($presupuesto_filtro === 'low') {
+    $conditions[] = "precio <= 50000";
+} elseif ($presupuesto_filtro === 'mid') {
+    $conditions[] = "precio > 50000 AND precio <= 150000";
+} elseif ($presupuesto_filtro === 'high') {
+    $conditions[] = "precio > 150000";
 }
 
 $where_clause = !empty($conditions) ? " WHERE " . implode(" AND ", $conditions) : "";
@@ -88,10 +97,11 @@ $conn->close();
 // Helper para construir URLs conservando parámetros
 function build_catalog_url($overrides = []) {
     $current = [
-        'region'    => $GLOBALS['region_filtro'],
-        'categoria' => $GLOBALS['categoria_filtro'],
-        'orden'     => $GLOBALS['orden'],
-        'q'         => $GLOBALS['q_filtro']
+        'region'      => $GLOBALS['region_filtro'],
+        'categoria'   => $GLOBALS['categoria_filtro'],
+        'presupuesto' => $GLOBALS['presupuesto_filtro'],
+        'orden'       => $GLOBALS['orden'],
+        'q'           => $GLOBALS['q_filtro']
     ];
     $merged = array_merge($current, $overrides);
     $clean = [];
@@ -144,7 +154,7 @@ function build_catalog_url($overrides = []) {
 <main class="container py-5">
     <!-- Barra de Filtros y Búsqueda Avanzada -->
     <section class="card mb-5 border-0 shadow-sm" style="border-radius: 20px; background: #fff; padding: 1.75rem; border: 1px solid rgba(0,0,0,0.06) !important;">
-        <!-- Selector Regional Superior -->
+        <!-- Selector Regional Superior (UX-02) -->
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 pb-3 mb-4 border-bottom">
             <div>
                 <span class="text-muted small text-uppercase fw-bold d-block mb-1" style="letter-spacing: 0.05em;">Región Geográfica</span>
@@ -184,6 +194,7 @@ function build_catalog_url($overrides = []) {
                 <form method="GET" action="destinos.php" class="position-relative">
                     <?php if ($region_filtro !== 'all'): ?><input type="hidden" name="region" value="<?= htmlspecialchars($region_filtro) ?>"><?php endif; ?>
                     <?php if ($categoria_filtro !== 'all'): ?><input type="hidden" name="categoria" value="<?= htmlspecialchars($categoria_filtro) ?>"><?php endif; ?>
+                    <?php if ($presupuesto_filtro !== 'all'): ?><input type="hidden" name="presupuesto" value="<?= htmlspecialchars($presupuesto_filtro) ?>"><?php endif; ?>
                     <?php if ($orden !== 'nombre_asc'): ?><input type="hidden" name="orden" value="<?= htmlspecialchars($orden) ?>"><?php endif; ?>
                     
                     <div class="input-group">
@@ -215,6 +226,27 @@ function build_catalog_url($overrides = []) {
                 </div>
             </div>
         </div>
+
+        <!-- Filtros Rápidos de Presupuesto -->
+        <div class="d-flex flex-wrap align-items-center gap-2 mt-3 pt-3 border-top">
+            <span class="text-muted small fw-semibold me-1"><i class="bi bi-cash-stack me-1"></i>Presupuesto:</span>
+            <a href="<?= build_catalog_url(['presupuesto' => 'all']) ?>" 
+               class="btn btn-sm rounded-pill py-1 px-3 <?= $presupuesto_filtro === 'all' ? 'btn-success' : 'btn-outline-secondary' ?>">
+                Cualquier rango
+            </a>
+            <a href="<?= build_catalog_url(['presupuesto' => 'low']) ?>" 
+               class="btn btn-sm rounded-pill py-1 px-3 <?= $presupuesto_filtro === 'low' ? 'btn-success' : 'btn-outline-secondary' ?>">
+                Hasta 50.000 FCFA
+            </a>
+            <a href="<?= build_catalog_url(['presupuesto' => 'mid']) ?>" 
+               class="btn btn-sm rounded-pill py-1 px-3 <?= $presupuesto_filtro === 'mid' ? 'btn-success' : 'btn-outline-secondary' ?>">
+                50.000 - 150.000 FCFA
+            </a>
+            <a href="<?= build_catalog_url(['presupuesto' => 'high']) ?>" 
+               class="btn btn-sm rounded-pill py-1 px-3 <?= $presupuesto_filtro === 'high' ? 'btn-success' : 'btn-outline-secondary' ?>">
+                Premium (> 150.000 FCFA)
+            </a>
+        </div>
     </section>
 
     <!-- Indicador de Resultados Activos -->
@@ -231,14 +263,14 @@ function build_catalog_url($overrides = []) {
             </h2>
             <small class="text-muted">Mostrando <?= count($destinos) ?> de <?= $total_destinos ?> experiencias disponibles</small>
         </div>
-        <?php if ($categoria_filtro !== 'all' || $region_filtro !== 'all' || !empty($q_filtro)): ?>
+        <?php if ($categoria_filtro !== 'all' || $region_filtro !== 'all' || $presupuesto_filtro !== 'all' || !empty($q_filtro)): ?>
             <a href="destinos.php" class="btn btn-sm btn-outline-danger rounded-pill">
                 <i class="bi bi-x-circle me-1"></i> Limpiar Filtros
             </a>
         <?php endif; ?>
     </div>
 
-    <!-- Grid de Destinos de Alta Gama -->
+    <!-- Grid de Destinos de Alta Gama con Wishlist y Divisa Dinámica -->
     <div class="row g-4">
         <?php if (count($destinos) > 0): ?>
             <?php foreach ($destinos as $destino): 
@@ -246,7 +278,12 @@ function build_catalog_url($overrides = []) {
                 $precio_eur = round((float)$destino['precio'] / 655.957, 1);
             ?>
                 <div class="col-md-6 col-lg-4">
-                    <article class="card-experience h-100 d-flex flex-column" style="background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 4px 16px rgba(0,0,0,0.04); transition: transform 0.25s ease, box-shadow 0.25s ease;">
+                    <article class="card-experience h-100 d-flex flex-column position-relative" style="background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 4px 16px rgba(0,0,0,0.04); transition: transform 0.25s ease, box-shadow 0.25s ease;">
+                        <!-- Botón flotante Wishlist -->
+                        <button type="button" class="btn-wishlist" data-destination-id="<?= $destino['id'] ?>" title="Guardar en lista de deseos">
+                            <i class="bi bi-heart"></i>
+                        </button>
+
                         <!-- Imagen con Badge Flotante -->
                         <div class="position-relative overflow-hidden" style="aspect-ratio: 16 / 10;">
                             <img src="<?= htmlspecialchars($img) ?>" 
@@ -285,7 +322,7 @@ function build_catalog_url($overrides = []) {
                             <div class="pt-3 border-top d-flex justify-content-between align-items-end mt-2">
                                 <div>
                                     <span class="text-muted text-uppercase" style="font-size: 0.7rem; font-weight: 600; letter-spacing: 0.05em; display: block;">Precio por persona</span>
-                                    <span class="fw-bold" style="font-size: 1.25rem; color: var(--c-selva-700);">
+                                    <span class="fw-bold" style="font-size: 1.25rem; color: var(--c-selva-700);" data-currency-target data-base-xaf="<?= (float)$destino['precio'] ?>">
                                         <?= format_currency((float)$destino['precio'], 'XAF') ?>
                                     </span>
                                     <span class="text-muted" style="font-size: 0.75rem; display: block;">

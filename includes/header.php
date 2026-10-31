@@ -80,6 +80,8 @@ if (!function_exists('__')) {
       <?php endif; ?>
       
       <li><a class="nav-link" href="contacto.php"><i class="bi bi-envelope"></i> Contacto</a></li>
+      <li><a class="nav-link position-relative" href="destinos.php" title="Lista de Deseos"><i class="bi bi-heart"></i><span class="wishlist-counter-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" style="font-size:0.65rem;">0</span></a></li>
+      <li class="d-none d-lg-flex align-items-center ms-2"><div class="currency-selector-pill"><button type="button" class="currency-toggle-btn active" data-currency="XAF">FCFA</button><button type="button" class="currency-toggle-btn" data-currency="EUR">&euro;</button><button type="button" class="currency-toggle-btn" data-currency="USD">&#36;</button></div></li>
       
       <?php if (isset($_SESSION['user_id'])): ?>
         <li class="nav-item dropdown">
