@@ -86,23 +86,23 @@ $conn->close();
 .wizard-steps::before { content: ''; position: absolute; top: 25px; left: 0; right: 0; height: 2px; background: #e9ecef; z-index: 0; }
 .wizard-step { flex: 1; text-align: center; position: relative; z-index: 1; }
 .wizard-step-circle { width: 50px; height: 50px; border-radius: 50%; background: white; border: 3px solid #e9ecef; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-weight: bold; font-size: 1.2rem; color: #6c757d; transition: all 0.3s ease; }
-.wizard-step.active .wizard-step-circle { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-color: #667eea; color: white; }
+.wizard-step.active .wizard-step-circle { background: linear-gradient(135deg, var(--c-selva-900, #0D3821) 0%, var(--c-selva-700, #17613A) 100%); border-color: var(--c-selva-700, #17613A); color: white; }
 .wizard-step.completed .wizard-step-circle { background: #28a745; border-color: #28a745; color: white; }
 .wizard-step-title { font-size: 0.875rem; font-weight: 600; color: #6c757d; }
-.wizard-step.active .wizard-step-title { color: #667eea; }
+.wizard-step.active .wizard-step-title { color: var(--c-selva-700, #17613A); }
 .wizard-content { background: white; border-radius: 15px; padding: 2rem; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
 .step-content { display: none; }
 .step-content.active { display: block; animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .destino-card, .service-card { border: 2px solid transparent; transition: all 0.3s ease; cursor: pointer; border-radius: 12px; overflow: hidden; }
 .destino-card:hover, .service-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-.destino-card.selected, .service-card.selected { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2); }
-.destino-order-badge { position: absolute; top: 10px; left: 10px; width: 35px; height: 35px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-weight: bold; z-index: 2; }
+.destino-card.selected, .service-card.selected { border-color: var(--c-selva-700, #17613A); box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2); }
+.destino-order-badge { position: absolute; top: 10px; left: 10px; width: 35px; height: 35px; background: linear-gradient(135deg, var(--c-selva-900, #0D3821) 0%, var(--c-selva-700, #17613A) 100%); color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-weight: bold; z-index: 2; }
 .selected-items-preview { background: #f8f9fa; border-radius: 10px; padding: 1rem; margin-top: 1rem; }
 .filter-chip { padding: 0.5rem 1rem; border: 2px solid #e9ecef; border-radius: 50px; cursor: pointer; transition: all 0.3s ease; background: white; margin: 0.25rem; }
-.filter-chip:hover { border-color: #667eea; background: #f8f9fa; }
-.filter-chip.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-color: #667eea; color: white; }
-.summary-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px; padding: 2rem; }
+.filter-chip:hover { border-color: var(--c-selva-700, #17613A); background: #f8f9fa; }
+.filter-chip.active { background: linear-gradient(135deg, var(--c-selva-900, #0D3821) 0%, var(--c-selva-700, #17613A) 100%); border-color: var(--c-selva-700, #17613A); color: white; }
+.summary-card { background: linear-gradient(135deg, var(--c-selva-900, #0D3821) 0%, var(--c-selva-700, #17613A) 100%); color: white; border-radius: 15px; padding: 2rem; }
 </style>
 
 <div class="container py-5">
