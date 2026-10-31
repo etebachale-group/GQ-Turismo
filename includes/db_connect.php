@@ -19,10 +19,10 @@ if (!defined('DB_ACCESS_ALLOWED')) {
 }
 
 // Configuración de conexión
-$servername = "localhost";
-$username = "root";        // ⚠️ CAMBIAR EN PRODUCCIÓN - Usar usuario específico
-$password = "";            // ⚠️ ESTABLECER CONTRASEÑA FUERTE
-$dbname = "gq_turismo";
+$servername = "sql107.infinityfree.com";
+$username = "if0_39858318";        // ⚠️ CAMBIAR EN PRODUCCIÓN - Usar usuario específico
+$password = "r8HgmKsHZRU";            // ⚠️ ESTABLECER CONTRASEÑA FUERTE
+$dbname = "if0_39858318_gq_turismo";
 
 // Configuración de errores (solo en desarrollo)
 $show_errors = true; // Cambiar a false en producción
