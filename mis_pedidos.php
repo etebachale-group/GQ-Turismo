@@ -137,7 +137,7 @@ if ($conn) {
                                 <p class="mb-2"><strong>Fecha Servicio:</strong> <?= htmlspecialchars(date('d/m/Y', strtotime($pedido['fecha_servicio']))) ?></p>
                                 <p class="mb-2"><strong>Personas/Horas:</strong> <?= htmlspecialchars($pedido['cantidad_personas']) ?></p>
                                 <div class="alert alert-primary mb-3">
-                                    <strong>Total: <?= htmlspecialchars(number_format($pedido['precio_total'], 2)) ?> €</strong>
+                                    <strong>Total: <?= htmlspecialchars(format_currency((float)($pedido['precio_total']), 'XAF')) ?></strong>
                                 </div>
                                 <?php if ($pedido['estado'] == 'confirmado'): ?>
                                     <a href="pagar.php?id=<?= htmlspecialchars($pedido['id']) ?>" class="btn btn-success w-100">
@@ -190,7 +190,7 @@ if ($conn) {
                                         <td><small><?= htmlspecialchars(date('d/m/Y H:i', strtotime($pedido['fecha_solicitud']))) ?></small></td>
                                         <td><small><?= htmlspecialchars(date('d/m/Y', strtotime($pedido['fecha_servicio']))) ?></small></td>
                                         <td class="text-center"><?= htmlspecialchars($pedido['cantidad_personas']) ?></td>
-                                        <td class="text-end"><strong><?= htmlspecialchars(number_format($pedido['precio_total'], 2)) ?> €</strong></td>
+                                        <td class="text-end"><strong><?= htmlspecialchars(format_currency((float)($pedido['precio_total']), 'XAF')) ?></strong></td>
                                         <td class="text-center">
                                             <span class="badge bg-<?= ($pedido['estado'] == 'confirmado') ? 'success' : (($pedido['estado'] == 'cancelado') ? 'danger' : (($pedido['estado'] == 'completado') ? 'info' : 'warning')) ?>">
                                                 <?= htmlspecialchars(ucfirst($pedido['estado'])) ?>

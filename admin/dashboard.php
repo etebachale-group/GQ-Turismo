@@ -189,7 +189,7 @@ include 'admin_header.php';
                 <i class="bi bi-cash-stack"></i>
             </div>
             <div class="stat-content">
-                <h3><?= number_format($dashboard_data['total_income'] ?? 0, 2) ?> €</h3>
+                <h3><?= format_currency((float)($dashboard_data['total_income'] ?? 0), 'XAF') ?></h3>
                 <p>Ingresos Totales</p>
             </div>
         </div>
@@ -235,7 +235,7 @@ include 'admin_header.php';
                 <i class="bi bi-cash-stack"></i>
             </div>
             <div class="stat-content">
-                <h3><?= number_format($dashboard_data['total_income'] ?? 0, 2) ?> €</h3>
+                <h3><?= format_currency((float)($dashboard_data['total_income'] ?? 0), 'XAF') ?></h3>
                 <p>Ingresos Completados</p>
             </div>
         </div>

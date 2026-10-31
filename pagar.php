@@ -99,7 +99,7 @@ if ($conn) {
                         <p><strong>Proveedor:</strong> <?= htmlspecialchars($pedido['nombre_proveedor']) ?></p>
                         <p><strong>Servicio/Menú:</strong> <?= htmlspecialchars($pedido['item_name']) ?></p>
                         <hr>
-                        <p class="fs-4 fw-bold text-end">Total a Pagar: <?= htmlspecialchars(number_format($pedido['precio_total'], 2)) ?> €</p>
+                        <p class="fs-4 fw-bold text-end">Total a Pagar: <?= htmlspecialchars(format_currency((float)($pedido['precio_total']), 'XAF')) ?></p>
                         
                         <form action="pagar.php?id=<?= $id_pedido ?>" method="POST">
                             <h4 class="mt-4">Método de Pago</h4>

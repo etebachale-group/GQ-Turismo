@@ -336,7 +336,7 @@ $conn->close();
                         <div class="col-md-6">
                             <small class="text-muted d-block">
                                 <i class="bi bi-cash me-1"></i>
-                                <strong>Presupuesto:</strong> <?php echo number_format($it['presupuesto_estimado'], 2); ?> €
+                                <strong>Presupuesto:</strong> <?php echo format_currency((float)($it['presupuesto_estimado']), 'XAF'); ?>
                             </small>
                         </div>
                         <?php endif; ?>
@@ -420,7 +420,7 @@ $conn->close();
                         <p class="text-muted mb-2 small">
                             <?php echo htmlspecialchars(substr($guia['especialidades'], 0, 30)); ?>...
                         </p>
-                        <p class="text-primary fw-bold mb-2 small"><?php echo number_format($guia['precio_hora'], 2); ?> €/h</p>
+                        <p class="text-primary fw-bold mb-2 small"><?php echo format_currency((float)($guia['precio_hora']), 'XAF'); ?>/h</p>
                         <a href="detalle_guia.php?id=<?php echo $guia['id']; ?>" class="btn btn-sm btn-outline-primary w-100">
                             Ver Perfil
                         </a>

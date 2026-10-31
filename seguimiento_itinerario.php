@@ -282,7 +282,7 @@ include 'includes/header.php';
                                 <div class="mb-2">
                                     <strong>Presupuesto:</strong>
                                     <span class="text-primary fs-5">
-                                        <?= number_format($itinerario['presupuesto_estimado'] ?? 0, 2) ?> €
+                                        <?= format_currency((float)($itinerario['presupuesto_estimado'] ?? 0), 'XAF') ?>
                                     </span>
                                 </div>
                                 <?php if (!empty($itinerario['fecha_inicio']) && !empty($itinerario['fecha_fin'])): ?>
@@ -370,7 +370,7 @@ include 'includes/header.php';
                                 <i class="bi bi-currency-euro me-1"></i>Precio
                             </span>
                             <span class="info-value">
-                                <?= number_format($destino['precio'], 2) ?> €
+                                <?= format_currency((float)($destino['precio']), 'XAF') ?>
                             </span>
                         </div>
                         <?php endif; ?>

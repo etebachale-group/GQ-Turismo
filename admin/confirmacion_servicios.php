@@ -183,7 +183,7 @@ include 'includes/header.php';
                                 <div class="row g-2 mb-3">
                                     <div class="col-6">
                                         <small class="text-muted d-block">Precio</small>
-                                        <strong><?= number_format($servicio['precio'], 2) ?> €</strong>
+                                        <strong><?= format_currency((float)($servicio['precio']), 'XAF') ?></strong>
                                     </div>
                                     <div class="col-6">
                                         <small class="text-muted d-block">Personas</small>

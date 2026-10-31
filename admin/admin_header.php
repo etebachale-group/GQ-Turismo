@@ -27,14 +27,10 @@ $base_url = '../';
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <!-- Custom CSS -->
+    <!-- GQ Design Tokens & Admin Styles (F-05) -->
+    <link rel="stylesheet" href="<?= $base_url ?>assets/css/gq-design-tokens.css">
     <link rel="stylesheet" href="<?= $base_url ?>assets/css/modern-ui.css">
-    <link rel="stylesheet" href="<?= $base_url ?>assets/css/mobile-optimization.css">
     <link rel="stylesheet" href="<?= $base_url ?>assets/css/admin-mobile.css">
-    <link rel="stylesheet" href="<?= $base_url ?>assets/css/mobile-fixes.css">
-    <link rel="stylesheet" href="<?= $base_url ?>assets/css/mobile-responsive.css">
-    <link rel="stylesheet" href="<?= $base_url ?>assets/css/mobile-responsive-admin.css">
-    <link rel="stylesheet" href="<?= $base_url ?>assets/css/mobile-responsive-final.css">
 
     <!-- Logo -->
     <link rel="icon" href="<?= $base_url ?>assets/img/logo.png" type="image/x-icon">

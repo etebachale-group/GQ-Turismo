@@ -550,7 +550,7 @@ include 'admin_header.php';
                                 <input type="text" class="form-control" id="ciudad_operacion" name="ciudad_operacion" placeholder="Ej: Malabo" required>
                             </div>
                             <div class="mb-3">
-                                <label for="precio_hora" class="form-label">Precio por Hora (€)</label>
+                                <label for="precio_hora" class="form-label">Precio por Hora (FCFA)</label>
                                 <input type="number" step="0.01" class="form-control" id="precio_hora" name="precio_hora" required>
                             </div>
                             <div class="mb-3">
@@ -586,7 +586,7 @@ include 'admin_header.php';
                                 <input type="text" class="form-control" id="ciudad_operacion" name="ciudad_operacion" value="<?= htmlspecialchars($edit_guia['ciudad_operacion'] ?? '') ?>" placeholder="Ej: Malabo" required>
                             </div>
                             <div class="mb-3">
-                                <label for="precio_hora" class="form-label">Precio por Hora (€)</label>
+                                <label for="precio_hora" class="form-label">Precio por Hora (FCFA)</label>
                                 <input type="number" step="0.01" class="form-control" id="precio_hora" name="precio_hora" value="<?= htmlspecialchars($edit_guia['precio_hora']) ?>" required>
                             </div>
                             <div class="mb-3">
@@ -703,7 +703,7 @@ include 'admin_header.php';
                                                     <td><?= htmlspecialchars($service['id']) ?></td>
                                                     <td><?= htmlspecialchars($service['nombre_servicio']) ?></td>
                                                     <td><?= htmlspecialchars($service['descripcion']) ?></td>
-                                                    <td><?= htmlspecialchars(number_format($service['precio'], 2)) ?> €</td>
+                                                    <td><?= htmlspecialchars(format_currency((float)($service['precio']), 'XAF')) ?></td>
                                                     <td>
                                                         <form method="POST" action="manage_guias.php" style="display:inline;" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este servicio?');">
     <?= csrf_field() ?>
@@ -820,7 +820,7 @@ include 'admin_header.php';
                                     <div class="card text-white bg-success h-100">
                                         <div class="card-body">
                                             <h5 class="card-title">Ingresos Totales Completados</h5>
-                                            <p class="card-text display-4"><?= number_format($total_income_guia, 2) ?> €</p>
+                                            <p class="card-text display-4"><?= format_currency((float)($total_income_guia), 'XAF') ?></p>
                                         </div>
                                     </div>
                                 </div>
@@ -840,7 +840,7 @@ include 'admin_header.php';
                                     <?php foreach ($income_by_service_guia as $item): ?>
                                         <li class="list-group-item d-flex justify-content-between align-items-center">
                                             <?= htmlspecialchars($item['item_name']) ?>
-                                            <span class="badge bg-primary rounded-pill"><?= number_format($item['total_item_income'], 2) ?> €</span>
+                                            <span class="badge bg-primary rounded-pill"><?= format_currency((float)($item['total_item_income']), 'XAF') ?></span>
                                         </li>
                                     <?php endforeach; ?>
                                 </ul>
@@ -877,7 +877,7 @@ include 'admin_header.php';
                                                     <td><?= htmlspecialchars($order['turista_nombre']) ?></td>
                                                     <td><?= htmlspecialchars($order['fecha_servicio']) ?></td>
                                                     <td><?= htmlspecialchars($order['cantidad_personas']) ?></td>
-                                                    <td><?= htmlspecialchars(number_format($order['precio_total'], 2)) ?> €</td>
+                                                    <td><?= htmlspecialchars(format_currency((float)($order['precio_total']), 'XAF')) ?></td>
                                                     <td>
                                                         <form action="manage_guias.php" method="POST" style="display:inline;">
 <?= csrf_field() ?>
@@ -942,7 +942,7 @@ include 'admin_header.php';
                                             <td><?= htmlspecialchars($guia['usuario_nombre']) ?></td>
                                             <td><?= htmlspecialchars($guia['nombre_guia']) ?></td>
                                             <td><?= htmlspecialchars($guia['especialidades']) ?></td>
-                                            <td><?= htmlspecialchars(number_format($guia['precio_hora'], 2)) ?> €</td>
+                                            <td><?= htmlspecialchars(format_currency((float)($guia['precio_hora']), 'XAF')) ?></td>
                                             <td><?= htmlspecialchars($guia['contacto_email']) ?></td>
                                             <td><?= htmlspecialchars($guia['contacto_telefono']) ?></td>
                                             <td>

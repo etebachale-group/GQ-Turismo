@@ -9,6 +9,8 @@ if (!isset($conn) && !isset($GLOBALS['db_connected'])) {
     require_once __DIR__ . '/db_connect.php';
     $GLOBALS['db_connected'] = true;
 }
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/evisa.php';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -17,10 +19,10 @@ if (!isset($conn) && !isset($GLOBALS['db_connected'])) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GQ-Turismo - Explora Guinea Ecuatorial</title>
 
-  <!-- Google Fonts: Inter & Poppins (Modern) -->
+  <!-- Google Fonts: Fraunces & Inter (F-05) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- Bootstrap 5.3 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
@@ -31,11 +33,11 @@ if (!isset($conn) && !isset($GLOBALS['db_connected'])) {
   <!-- AOS CSS -->
   <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
 
-  <!-- Custom CSS -->
+  <!-- GQ Design Tokens & Modern UI (F-05) -->
+  <link rel="stylesheet" href="assets/css/gq-design-tokens.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="assets/css/responsive.css">
   <link rel="stylesheet" href="assets/css/modern-ui.css">
-  <link rel="stylesheet" href="assets/css/mobile-enhancements.css">
 
   <!-- Logo -->
   <link rel="icon" href="assets/img/logo.png" type="image/x-icon">
@@ -58,6 +60,7 @@ if (!isset($conn) && !isset($GLOBALS['db_connected'])) {
       <li><a class="nav-link" href="agencias.php"><i class="bi bi-building"></i> Agencias</a></li>
       <li><a class="nav-link" href="guias.php"><i class="bi bi-person-badge"></i> Guías</a></li>
       <li><a class="nav-link" href="locales.php"><i class="bi bi-shop"></i> Locales</a></li>
+      <li><a class="nav-link" href="<?= fuente_oficial('evisa_gnq') ?>" target="_blank" rel="noopener noreferrer" style="color: var(--c-selva-600, #1b5e20); font-weight: 600;"><i class="bi bi-passport"></i> Solicitar e-Visa</a></li>
       <?php endif; ?>
       
       <?php if (isset($_SESSION['user_id']) && isset($_SESSION['user_type']) && in_array($_SESSION['user_type'], ['agencia', 'guia', 'local', 'super_admin'])): ?>
@@ -104,6 +107,7 @@ if (!isset($conn) && !isset($GLOBALS['db_connected'])) {
     <li><a class="nav-link" href="agencias.php"><i class="bi bi-building-fill"></i> Agencias</a></li>
     <li><a class="nav-link" href="guias.php"><i class="bi bi-person-badge-fill"></i> Guías Turísticos</a></li>
     <li><a class="nav-link" href="locales.php"><i class="bi bi-shop"></i> Lugares Locales</a></li>
+    <li><a class="nav-link" href="<?= fuente_oficial('evisa_gnq') ?>" target="_blank" rel="noopener noreferrer" style="color: var(--c-selva-600, #1b5e20); font-weight: 600;"><i class="bi bi-passport"></i> Solicitar e-Visa (Oficial)</a></li>
     <?php endif; ?>
     
     <?php if (isset($_SESSION['user_id']) && isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'turista'): ?>

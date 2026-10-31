@@ -183,7 +183,7 @@ if ($result) {
                         <div class="destino-item">
                             <h6 class="fw-bold"><?php echo ($idx + 1); ?>. <?php echo htmlspecialchars($dest['nombre']); ?></h6>
                             <p class="mb-1 text-muted"><?php echo htmlspecialchars($dest['descripcion']); ?></p>
-                            <p class="mb-0"><strong>Precio:</strong> <?php echo number_format($dest['precio'], 2); ?> €</p>
+                            <p class="mb-0"><strong>Precio:</strong> <?php echo format_currency((float)($dest['precio']), 'XAF'); ?></p>
                         </div>
                         <?php endforeach; ?>
                     </div>
@@ -207,7 +207,7 @@ if ($result) {
                             <div>
                                 <h6 class="mb-1"><?php echo htmlspecialchars($guia['nombre_guia']); ?></h6>
                                 <p class="mb-0 small text-muted"><?php echo htmlspecialchars($guia['especialidades']); ?></p>
-                                <p class="mb-0 text-primary"><?php echo number_format($guia['precio_hora'], 2); ?> €/hora</p>
+                                <p class="mb-0 text-primary"><?php echo format_currency((float)($guia['precio_hora']), 'XAF'); ?>/hora</p>
                             </div>
                         </div>
                         <?php endforeach; ?>
@@ -292,11 +292,11 @@ if ($result) {
                     <div class="mb-3">
                         <div class="d-flex justify-content-between mb-2">
                             <span>Destinos:</span>
-                            <strong><?php echo number_format($itinerario['precio_total'], 2); ?> €</strong>
+                            <strong><?php echo format_currency((float)($itinerario['precio_total']), 'XAF'); ?></strong>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span>Presupuesto Estimado:</span>
-                            <strong><?php echo number_format($itinerario['presupuesto_estimado'], 2); ?> €</strong>
+                            <strong><?php echo format_currency((float)($itinerario['presupuesto_estimado']), 'XAF'); ?></strong>
                         </div>
                     </div>
                     
@@ -304,7 +304,7 @@ if ($result) {
                     
                     <div class="d-flex justify-content-between mb-4">
                         <h5>Total:</h5>
-                        <h5 class="text-primary"><?php echo number_format($itinerario['precio_total'] + $itinerario['presupuesto_estimado'], 2); ?> €</h5>
+                        <h5 class="text-primary"><?php echo format_currency((float)($itinerario['precio_total'] + $itinerario['presupuesto_estimado']), 'XAF'); ?></h5>
                     </div>
                     
                     <div class="alert alert-info small">

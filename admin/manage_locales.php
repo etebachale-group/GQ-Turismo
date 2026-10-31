@@ -648,7 +648,7 @@ include 'admin_header.php';
                                                     <td><?= htmlspecialchars($service['id']) ?></td>
                                                     <td><?= htmlspecialchars($service['nombre_servicio']) ?></td>
                                                     <td><?= htmlspecialchars($service['descripcion']) ?></td>
-                                                    <td><?= htmlspecialchars(number_format($service['precio'], 2)) ?> €</td>
+                                                    <td><?= htmlspecialchars(format_currency((float)($service['precio']), 'XAF')) ?></td>
                                                     <td>
                                                         <form method="POST" action="manage_locales.php" style="display:inline;" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este servicio?');">
     <?= csrf_field() ?>
@@ -707,7 +707,7 @@ include 'admin_header.php';
                                                     <td><?= htmlspecialchars($menu['id']) ?></td>
                                                     <td><?= htmlspecialchars($menu['nombre_menu']) ?></td>
                                                     <td><?= htmlspecialchars($menu['descripcion']) ?></td>
-                                                    <td><?= htmlspecialchars(number_format($menu['precio_total'], 2)) ?> €</td>
+                                                    <td><?= htmlspecialchars(format_currency((float)($menu['precio_total']), 'XAF')) ?></td>
                                                     <td>
                                                         <form method="POST" action="manage_locales.php" style="display:inline;" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este menú?');">
     <?= csrf_field() ?>
@@ -757,7 +757,7 @@ include 'admin_header.php';
                                                     <td><?= htmlspecialchars($order['turista_nombre']) ?></td>
                                                     <td><?= htmlspecialchars($order['fecha_servicio']) ?></td>
                                                     <td><?= htmlspecialchars($order['cantidad_personas']) ?></td>
-                                                    <td><?= htmlspecialchars(number_format($order['precio_total'], 2)) ?> €</td>
+                                                    <td><?= htmlspecialchars(format_currency((float)($order['precio_total']), 'XAF')) ?></td>
                                                     <td>
                                                         <form action="manage_locales.php" method="POST" style="display:inline;">
 <?= csrf_field() ?>

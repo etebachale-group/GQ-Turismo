@@ -586,7 +586,7 @@ include 'admin_header.php';
                                                     <td><?= htmlspecialchars($service['id']) ?></td>
                                                     <td><?= htmlspecialchars($service['nombre_servicio']) ?></td>
                                                     <td><?= htmlspecialchars($service['descripcion']) ?></td>
-                                                    <td><?= htmlspecialchars(number_format($service['precio'], 2)) ?> €</td>
+                                                    <td><?= htmlspecialchars(format_currency((float)($service['precio']), 'XAF')) ?></td>
                                                     <td>
                                                         <!-- Implementar edición de servicio si es necesario -->
                                                         <form method="POST" action="manage_agencias.php" style="display:inline;" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este servicio?');">
@@ -646,7 +646,7 @@ include 'admin_header.php';
                                                     <td><?= htmlspecialchars($menu['id']) ?></td>
                                                     <td><?= htmlspecialchars($menu['nombre_menu']) ?></td>
                                                     <td><?= htmlspecialchars($menu['descripcion']) ?></td>
-                                                    <td><?= htmlspecialchars(number_format($menu['precio_total'], 2)) ?> €</td>
+                                                    <td><?= htmlspecialchars(format_currency((float)($menu['precio_total']), 'XAF')) ?></td>
                                                     <td>
                                                         <!-- Implementar edición de menú si es necesario -->
                                                         <form method="POST" action="manage_agencias.php" style="display:inline;" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este menú?');">
@@ -677,7 +677,7 @@ include 'admin_header.php';
                                     <div class="card text-white bg-success h-100">
                                         <div class="card-body">
                                             <h5 class="card-title">Ingresos Totales Completados</h5>
-                                            <p class="card-text display-4"><?= number_format($total_income_agency, 2) ?> €</p>
+                                            <p class="card-text display-4"><?= format_currency((float)($total_income_agency), 'XAF') ?></p>
                                         </div>
                                     </div>
                                 </div>
@@ -699,7 +699,7 @@ include 'admin_header.php';
                                             <?php foreach ($income_by_service as $item): ?>
                                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                                     <?= htmlspecialchars($item['item_name']) ?>
-                                                    <span class="badge bg-primary rounded-pill"><?= number_format($item['total_item_income'], 2) ?> €</span>
+                                                    <span class="badge bg-primary rounded-pill"><?= format_currency((float)($item['total_item_income']), 'XAF') ?></span>
                                                 </li>
                                             <?php endforeach; ?>
                                         </ul>
@@ -714,7 +714,7 @@ include 'admin_header.php';
                                             <?php foreach ($income_by_menu as $item): ?>
                                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                                     <?= htmlspecialchars($item['item_name']) ?>
-                                                    <span class="badge bg-primary rounded-pill"><?= number_format($item['total_item_income'], 2) ?> €</span>
+                                                    <span class="badge bg-primary rounded-pill"><?= format_currency((float)($item['total_item_income']), 'XAF') ?></span>
                                                 </li>
                                             <?php endforeach; ?>
                                         </ul>
@@ -825,7 +825,7 @@ include 'admin_header.php';
                                                     <td><?= htmlspecialchars($order['turista_nombre']) ?></td>
                                                     <td><?= htmlspecialchars($order['fecha_servicio']) ?></td>
                                                     <td><?= htmlspecialchars($order['cantidad_personas']) ?></td>
-                                                    <td><?= htmlspecialchars(number_format($order['precio_total'], 2)) ?> €</td>
+                                                    <td><?= htmlspecialchars(format_currency((float)($order['precio_total']), 'XAF')) ?></td>
                                                     <td>
                                                         <form action="manage_agencias.php" method="POST" style="display:inline;">
 <?= csrf_field() ?>

@@ -500,7 +500,7 @@ include 'admin_header.php';
                                             <?= htmlspecialchars($destino_item['categoria']) ?>
                                         </span>
                                     </td>
-                                    <td><strong><?= number_format($destino_item['precio'], 2) ?> €</strong></td>
+                                    <td><strong><?= format_currency((float)($destino_item['precio']), 'XAF') ?></strong></td>
                                     <td>
                                         <div style="display: flex; gap: var(--space-sm);">
                                             <a href="manage_destinos.php?edit_id=<?= htmlspecialchars($destino_item['id']) ?>" 

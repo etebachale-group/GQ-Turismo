@@ -579,7 +579,7 @@ include 'includes/header.php';
                             <?php if (isset($tarea['precio']) && $tarea['precio'] > 0): ?>
                                 <div class="meta-item">
                                     <i class="bi bi-cash text-warning"></i>
-                                    <span><?= number_format($tarea['precio'], 2) ?> €</span>
+                                    <span><?= format_currency((float)($tarea['precio']), 'XAF') ?></span>
                                 </div>
                             <?php endif; ?>
                         </div>

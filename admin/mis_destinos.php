@@ -335,7 +335,7 @@ input:checked + .slider:before {
                         <?php if ($destino['tarifa_especial']): ?>
                         <p class="mb-2">
                             <strong>Tarifa:</strong>
-                            <span class="text-success"><?= number_format($destino['tarifa_especial'], 2) ?> €</span>
+                            <span class="text-success"><?= format_currency((float)($destino['tarifa_especial']), 'XAF') ?></span>
                         </p>
                         <?php endif; ?>
                         

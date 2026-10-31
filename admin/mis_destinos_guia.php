@@ -154,7 +154,7 @@ include 'admin_header.php';
                             <?php endif; ?>
                             <?php if ($destino['tarifa_dia'] > 0): ?>
                                 <span class="badge bg-success">
-                                    <i class="bi bi-currency-dollar"></i> <?= number_format($destino['tarifa_dia'], 2) ?>€/día
+                                    <i class="bi bi-currency-dollar"></i> <?= format_currency((float)($destino['tarifa_dia']), 'XAF') ?>/día
                                 </span>
                             <?php endif; ?>
                         </div>
@@ -223,7 +223,7 @@ include 'admin_header.php';
                                    class="form-control" min="0" value="0">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="tarifa_dia" class="form-label">Tarifa por Día (€)</label>
+                            <label for="tarifa_dia" class="form-label">Tarifa por Día (FCFA)</label>
                             <input type="number" name="tarifa_dia" id="tarifa_dia" 
                                    class="form-control" step="0.01" min="0" value="0">
                         </div>

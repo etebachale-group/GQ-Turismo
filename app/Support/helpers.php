@@ -44,3 +44,9 @@ if (!function_exists('format_currency')) {
         return number_format($amount, 2, ',', ' ') . ' ' . $currency;
     }
 }
+
+if (!function_exists('requerir_rol')) {
+    function requerir_rol(array|string $roles, ?string $redirect = null): void {
+        \App\Support\Auth::requireRole($roles, $redirect);
+    }
+}

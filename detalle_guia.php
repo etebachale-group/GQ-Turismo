@@ -98,7 +98,7 @@ $conn->close(); // Close connection at the very end of the script
                 <p class="lead text-muted"><?= nl2br(htmlspecialchars($guia['descripcion'])) ?></p>
                 <hr>
                 <p><i class="bi bi-star-fill me-2 text-warning"></i>Especialidades: <?= htmlspecialchars($guia['especialidades'] ?? 'N/A') ?></p>
-                <p><i class="bi bi-cash me-2"></i>Precio por Hora: <?= number_format($guia['precio_hora'], 2) ?> €</p>
+                <p><i class="bi bi-cash me-2"></i>Precio por Hora: <?= format_currency((float)($guia['precio_hora']), 'XAF') ?></p>
                 <p><i class="bi bi-envelope me-2"></i>Email: <?= htmlspecialchars($guia['contacto_email']) ?></p>
                 <p><i class="bi bi-phone me-2"></i>Teléfono: <?= htmlspecialchars($guia['contacto_telefono'] ?? 'N/A') ?></p>
 
@@ -111,7 +111,7 @@ $conn->close(); // Close connection at the very end of the script
                                     <h5 class="mb-1"><?= htmlspecialchars($servicio['nombre_servicio']) ?></h5>
                                     <p class="mb-1 text-muted"><?= htmlspecialchars($servicio['descripcion']) ?></p>
                                 </div>
-                                <span class="badge bg-primary rounded-pill fs-5"><?= number_format($servicio['precio'], 2) ?> €</span>
+                                <span class="badge bg-primary rounded-pill fs-5"><?= format_currency((float)($servicio['precio']), 'XAF') ?></span>
                                 <?php if (isset($_SESSION['user_id']) && $_SESSION['user_type'] === 'turista'): ?>
                                     <button class="btn btn-sm btn-outline-primary order-service-btn" data-bs-toggle="modal" data-bs-target="#orderServiceModal" data-id="<?= htmlspecialchars($servicio['id']) ?>" data-type="servicio" data-price="<?= htmlspecialchars($servicio['precio']) ?>" data-provider-type="guia" data-provider-id="<?= htmlspecialchars($guia['id']) ?>" data-name="<?= htmlspecialchars($servicio['nombre_servicio']) ?>">Contratar</button>
                                 <?php else: ?>

@@ -1,8 +1,10 @@
 # Entorno y Secretos (H-06)
 .env
+.env.testing
 .env.local
 .env.*.local
 *.log
+logs/
 
 # Base de datos y dumps sensibles
 *.sql

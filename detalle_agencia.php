@@ -106,7 +106,7 @@ if ($agencia) {
                                     <h5 class="mb-1"><?= htmlspecialchars($servicio['nombre_servicio']) ?></h5>
                                     <p class="mb-1 text-muted"><?= htmlspecialchars($servicio['descripcion']) ?></p>
                                 </div>
-                                <span class="badge bg-primary rounded-pill fs-5"><?= number_format($servicio['precio'], 2) ?> €</span>
+                                <span class="badge bg-primary rounded-pill fs-5"><?= format_currency((float)($servicio['precio']), 'XAF') ?></span>
                                 <button class="btn btn-sm btn-outline-primary order-service-btn" data-bs-toggle="modal" data-bs-target="#orderServiceModal" data-id="<?= htmlspecialchars($servicio['id']) ?>" data-type="servicio" data-price="<?= htmlspecialchars($servicio['precio']) ?>" data-provider-type="agencia" data-provider-id="<?= htmlspecialchars($agencia['id']) ?>" data-name="<?= htmlspecialchars($servicio['nombre_servicio']) ?>">Encargar</button>
                             </div>
                         <?php endforeach; ?>
@@ -124,7 +124,7 @@ if ($agencia) {
                                     <h5 class="mb-1"><?= htmlspecialchars($menu['nombre_menu']) ?></h5>
                                     <p class="mb-1 text-muted"><?= htmlspecialchars($menu['descripcion']) ?></p>
                                 </div>
-                                <span class="badge bg-success rounded-pill fs-5"><?= number_format($menu['precio_total'], 2) ?> €</span>
+                                <span class="badge bg-success rounded-pill fs-5"><?= format_currency((float)($menu['precio_total']), 'XAF') ?></span>
                                 <button class="btn btn-sm btn-outline-primary order-service-btn" data-bs-toggle="modal" data-bs-target="#orderServiceModal" data-id="<?= htmlspecialchars($menu['id']) ?>" data-type="menu" data-price="<?= htmlspecialchars($menu['precio_total']) ?>" data-provider-type="agencia" data-provider-id="<?= htmlspecialchars($agencia['id']) ?>" data-name="<?= htmlspecialchars($menu['nombre_menu']) ?>">Encargar</button>
                             </div>
                         <?php endforeach; ?>

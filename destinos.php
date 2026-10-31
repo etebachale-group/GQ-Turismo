@@ -221,7 +221,7 @@ $conn->close();
                             
                             <div class="d-flex justify-content-between align-items-center">
                                 <span class="precio-tag">
-                                    <?php echo number_format($destino['precio'], 2); ?> €
+                                    <?php echo format_currency((float)($destino['precio']), 'XAF'); ?>
                                 </span>
                                 <a href="detalle_destino.php?id=<?php echo $destino['id']; ?>" 
                                    class="btn btn-primary">

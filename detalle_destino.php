@@ -189,7 +189,7 @@ require_once 'includes/header.php';
                     </span>
                     <?php endif; ?>
                     <span class="badge bg-success px-3 py-2">
-                        <i class="bi bi-cash me-2"></i><?php echo number_format($destino['precio'], 2); ?> €
+                        <i class="bi bi-cash me-2"></i><?php echo format_currency((float)($destino['precio']), 'XAF'); ?>
                     </span>
                 </div>
             </div>
@@ -243,7 +243,7 @@ require_once 'includes/header.php';
                                 <div>
                                     <h6 class="mb-0">Precio</h6>
                                     <p class="text-muted mb-0">
-                                        <?php echo number_format($destino['precio'], 2); ?> € / persona
+                                        <?php echo format_currency((float)($destino['precio']), 'XAF'); ?> / persona
                                     </p>
                                 </div>
                             </div>
@@ -332,7 +332,7 @@ require_once 'includes/header.php';
                         <div class="d-flex justify-content-between align-items-center">
                             <span class="text-muted">Precio por persona:</span>
                             <span class="h3 text-primary fw-bold mb-0">
-                                <?php echo number_format($destino['precio'], 2); ?> €
+                                <?php echo format_currency((float)($destino['precio']), 'XAF'); ?>
                             </span>
                         </div>
                     </div>
@@ -414,7 +414,7 @@ require_once 'includes/header.php';
                         </p>
                         <div class="d-flex justify-content-between align-items-center">
                             <span class="h5 text-primary mb-0">
-                                <?php echo number_format($guia['precio_hora'], 2); ?> €/h
+                                <?php echo format_currency((float)($guia['precio_hora']), 'XAF'); ?>/h
                             </span>
                             <a href="detalle_guia.php?id=<?php echo $guia['id']; ?>" 
                                class="btn btn-sm btn-outline-primary">
@@ -494,7 +494,7 @@ require_once 'includes/header.php';
                         </h5>
                         <div class="d-flex justify-content-between align-items-center mt-3">
                             <span class="h5 text-primary mb-0">
-                                <?php echo number_format($similar['precio'], 2); ?> €
+                                <?php echo format_currency((float)($similar['precio']), 'XAF'); ?>
                             </span>
                             <a href="detalle_destino.php?id=<?php echo $similar['id']; ?>" 
                                class="btn btn-sm btn-primary">

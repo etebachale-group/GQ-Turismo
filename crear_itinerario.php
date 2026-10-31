@@ -169,7 +169,7 @@ $conn->close();
                                    min="<?php echo date('Y-m-d'); ?>">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Presupuesto (€)</label>
+                            <label class="form-label fw-bold">Presupuesto (FCFA)</label>
                             <input type="number" class="form-control form-control-lg" name="presupuesto_estimado" 
                                    value="<?php echo $edit_mode ? $itinerario_data['presupuesto_estimado'] : '0'; ?>" 
                                    step="0.01" min="0">
@@ -215,7 +215,7 @@ $conn->close();
                                     <p class="small text-muted mb-2"><?php echo substr(htmlspecialchars($d['descripcion']), 0, 60); ?>...</p>
                                     <div class="d-flex justify-content-between">
                                         <span class="badge bg-primary"><?php echo htmlspecialchars($d['categoria']); ?></span>
-                                        <span class="badge bg-success"><?php echo number_format($d['precio'], 2); ?> €</span>
+                                        <span class="badge bg-success"><?php echo format_currency((float)($d['precio']), 'XAF'); ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -226,7 +226,7 @@ $conn->close();
                     <div class="selected-items-preview mt-4" id="destinosPreview" style="display:none;">
                         <h6 class="fw-bold"><i class="bi bi-check-circle text-success me-2"></i>Seleccionados: <span id="destinosCount">0</span></h6>
                         <div id="destinosList"></div>
-                        <p class="mb-0 mt-2"><strong>Total: </strong><span class="text-success" id="destinosTotal">0.00 €</span></p>
+                        <p class="mb-0 mt-2"><strong>Total: </strong><span class="text-success" id="destinosTotal">0.00 FCFA</span></p>
                     </div>
                 </div>
 
@@ -245,7 +245,7 @@ $conn->close();
                                 <div class="card-body">
                                     <h6 class="fw-bold"><?php echo htmlspecialchars($g['nombre_guia']); ?></h6>
                                     <p class="small mb-1"><?php echo htmlspecialchars($g['especialidades']); ?></p>
-                                    <p class="text-primary mb-0"><?php echo number_format($g['precio_hora'], 2); ?> €/h</p>
+                                    <p class="text-primary mb-0"><?php echo format_currency((float)($g['precio_hora']), 'XAF'); ?>/h</p>
                                 </div>
                             </div>
                         </div>
@@ -309,10 +309,10 @@ $conn->close();
                         <div class="col-lg-4">
                             <div class="summary-card">
                                 <h5 class="mb-4">Costos</h5>
-                                <p>Destinos: <strong id="resTotal1">0 €</strong></p>
-                                <p>Presupuesto: <strong id="resTotal2">0 €</strong></p>
+                                <p>Destinos: <strong id="resTotal1">0 FCFA</strong></p>
+                                <p>Presupuesto: <strong id="resTotal2">0 FCFA</strong></p>
                                 <hr class="bg-white">
-                                <h4>Total: <span id="resTotal">0 €</span></h4>
+                                <h4>Total: <span id="resTotal">0 FCFA</span></h4>
                             </div>
                         </div>
                     </div>
@@ -470,7 +470,7 @@ function updateDestinos() {
     
     document.querySelectorAll('.destino-card:not(.selected) .destino-order-badge').forEach(b => b.style.display = 'none');
     list.innerHTML = html;
-    total.textContent = sum.toFixed(2) + ' €';
+    total.textContent = sum.toFixed(2) + ' FCFA';
 }
 
 function updateResumen() {
@@ -491,12 +491,12 @@ function updateResumen() {
     destinos.forEach(id => {
         const card = document.querySelector(`.destino-card[data-id="${id}"]`);
         const precio = parseFloat(card.dataset.precio);
-        html += `<li>${card.dataset.nombre} - ${precio.toFixed(2)} €</li>`;
+        html += `<li>${card.dataset.nombre} - ${precio.toFixed(2)} FCFA</li>`;
         total += precio;
     });
     html += '</ol>';
     document.getElementById('resumenDestinos').innerHTML = html;
-    document.getElementById('resTotal1').textContent = total.toFixed(2) + ' €';
+    document.getElementById('resTotal1').textContent = total.toFixed(2) + ' FCFA';
     
     // Servicios
     let servHtml = '';
@@ -529,8 +529,8 @@ function updateResumen() {
     
     // Totales
     const presup = parseFloat(form.presupuesto_estimado.value) || 0;
-    document.getElementById('resTotal2').textContent = presup.toFixed(2) + ' €';
-    document.getElementById('resTotal').textContent = (total + presup).toFixed(2) + ' €';
+    document.getElementById('resTotal2').textContent = presup.toFixed(2) + ' FCFA';
+    document.getElementById('resTotal').textContent = (total + presup).toFixed(2) + ' FCFA';
 }
 </script>
 
